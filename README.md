@@ -100,7 +100,7 @@ creditjambo-client/
    docker-compose down
 ```
 
-For detailed database documentation, see [DATABASE.md](backend/DATABASE.md)
+For detailed database documentation, see [DATABASE.md](backend/DATABASE.MD)
 
 ## Environment Variables
 
