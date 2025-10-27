@@ -27,7 +27,6 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       ...prettierConfig.rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      'no-console': 'warn',
       'no-process-exit': 'error',
       'no-throw-literal': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
@@ -78,7 +77,6 @@ export default [
       prettier,
     },
     rules: {
-      'no-console': 'warn',
       'no-process-exit': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
@@ -87,6 +85,6 @@ export default [
   },
 
   {
-    ignores: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**', '*.log'],
+    ignores: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**', '*.log', 'src/generated/**'],
   },
 ];

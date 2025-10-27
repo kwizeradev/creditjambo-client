@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { checkDatabaseConnection } from '@/utils/database.util';
 
 dotenv.config();
 
@@ -28,12 +29,15 @@ app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/api/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'success',
+app.get('/api/health', async (req: Request, res: Response) => {
+  const dbConnected = await checkDatabaseConnection();
+
+  res.status(dbConnected ? 200 : 503).json({
+    status: dbConnected ? 'success' : 'error',
     message: 'CJ-Savings API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'dev',
+    environment: process.env.NODE_ENV || 'development',
+    database: dbConnected ? 'connected' : 'disconnected',
   });
 });
 
