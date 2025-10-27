@@ -38,6 +38,36 @@ export default [
   },
 
   {
+    files: ['tests/**/*.{ts,cts,mts}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        project: './tsconfig.test.json',
+        sourceType: 'module',
+        ecmaVersion: 'latest',
+      },
+      globals: {
+        ...globals.node,
+        ...globals.es2022,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      prettier,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      ...prettierConfig.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'prettier/prettier': 'error',
+    },
+  },
+
+  {
     files: ['*.{ts,cts,mts}'],
     languageOptions: {
       parser: tsParser,

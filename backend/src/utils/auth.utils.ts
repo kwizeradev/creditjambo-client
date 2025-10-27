@@ -31,13 +31,17 @@ export function hashPassword(
 export function verifyPassword(password: string, salt: string, passwordHash: string): boolean {
   const { passwordHash: computedHash } = hashPassword(password, salt);
 
+  if (computedHash.length !== passwordHash.length) {
+    return false;
+  }
+
   try {
     return crypto.timingSafeEqual(
       Buffer.from(computedHash, 'hex'),
       Buffer.from(passwordHash, 'hex'),
     );
-  } catch (error) {
-    // Hashes are different lengths
+  } catch (e) {
+    console.error('Error during password verification:', e);
     return false;
   }
 }
