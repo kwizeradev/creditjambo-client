@@ -77,7 +77,30 @@ creditjambo-client/
 
 ## Database Setup
 
-[Database setup instructions to be added]
+1. Ensure Docker Desktop is running
+
+2. Start PostgreSQL:
+```bash
+   cd backend
+   docker-compose up -d
+```
+
+3. Verify connection:
+```bash
+   docker ps
+```
+
+4. The database will be available at:
+```
+   postgresql://postgres:kw1zera@localhost:5432/cjsavings
+```
+
+5. To stop the database:
+```bash
+   docker-compose down
+```
+
+For detailed database documentation, see [DATABASE.md](backend/DATABASE.md)
 
 ## Environment Variables
 
