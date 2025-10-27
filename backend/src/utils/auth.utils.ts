@@ -36,10 +36,14 @@ export function verifyPassword(password: string, salt: string, passwordHash: str
   }
 
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(computedHash, 'hex'),
-      Buffer.from(passwordHash, 'hex'),
-    );
+    const computedBuffer = Buffer.from(computedHash, 'hex');
+    const storedBuffer = Buffer.from(passwordHash, 'hex');
+
+    if (computedBuffer.length !== storedBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(computedBuffer, storedBuffer);
   } catch (e) {
     console.error('Error during password verification:', e);
     return false;

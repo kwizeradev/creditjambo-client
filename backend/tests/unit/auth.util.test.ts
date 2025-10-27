@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import crypto from 'crypto';
 import {
   hashPassword,
   verifyPassword,
@@ -99,6 +100,41 @@ describe('Auth Utility', () => {
       const isValid = verifyPassword(password, salt, malformedHash);
 
       expect(isValid).toBe(false);
+    });
+
+    it('should handle invalid hex characters in hash', () => {
+      const password = 'TestPassword123!';
+      const { salt } = hashPassword(password);
+      const invalidHash = 'g'.repeat(128);
+
+      const isValid = verifyPassword(password, salt, invalidHash);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should handle crypto.timingSafeEqual errors', () => {
+      const password = 'TestPassword123!';
+      const { salt, passwordHash } = hashPassword(password);
+
+      // Mock timingSafeEqual to throw an error
+      const originalTimingSafeEqual = crypto.timingSafeEqual;
+      crypto.timingSafeEqual = vi.fn().mockImplementation(() => {
+        throw new Error('Mocked crypto error');
+      });
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const isValid = verifyPassword(password, salt, passwordHash);
+
+      expect(isValid).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error during password verification:',
+        expect.any(Error),
+      );
+
+      // Restore original function
+      crypto.timingSafeEqual = originalTimingSafeEqual;
+      consoleSpy.mockRestore();
     });
   });
 
