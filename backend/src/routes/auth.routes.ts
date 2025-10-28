@@ -1,6 +1,5 @@
 import authController from '@/controllers/auth.controller';
-import { RefreshTokenSchema } from '@/dtos';
-import { LoginUserSchema, RegisterUserSchema } from '@/dtos/user.dto';
+import { LoginUserSchema, RefreshTokenSchema, RegisterUserSchema } from '@/dtos';
 import { asyncHandler, authenticate, validateBody } from '@/middlewares';
 import { Router } from 'express';
 

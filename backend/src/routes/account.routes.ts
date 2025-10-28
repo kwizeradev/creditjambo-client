@@ -1,8 +1,14 @@
+import { transactionLimiter } from '@/config/security';
 import accountController from '@/controllers/account.controller';
-import { TransactionQuerySchema } from '@/dtos/transaction.dto';
-import { authenticate, ensureDeviceVerified } from '@/middlewares/auth.middleware';
-import { asyncHandler } from '@/middlewares/error.middleware';
-import { validateQuery } from '@/middlewares/validation.middleware';
+import { DepositSchema, TransactionQuerySchema } from '@/dtos';
+import {
+  asyncHandler,
+  authenticate,
+  ensureDeviceVerified,
+  validateBody,
+  validateQuery,
+} from '@/middlewares';
+
 import { Router } from 'express';
 
 const router = Router();
@@ -20,6 +26,15 @@ router.get(
   ensureDeviceVerified,
   validateQuery(TransactionQuerySchema),
   asyncHandler(accountController.getTransactions.bind(accountController)),
+);
+
+router.post(
+  '/deposit',
+  authenticate,
+  ensureDeviceVerified,
+  transactionLimiter,
+  validateBody(DepositSchema),
+  asyncHandler(accountController.deposit.bind(accountController)),
 );
 
 export default router;

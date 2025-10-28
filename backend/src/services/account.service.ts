@@ -1,11 +1,13 @@
+import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/error.middleware';
 import {
-  toTransactionResponse,
+  DepositInput,
   PaginatedTransactionResponse,
+  toTransactionResponse,
   TransactionQuery,
 } from '../dtos/transaction.dto';
-import { Prisma } from '@prisma/client';
+import { AppError } from '../middlewares/error.middleware';
 
 export class AccountService {
   async getAccountBalance(userId: string) {
@@ -81,6 +83,48 @@ export class AccountService {
         total,
         totalPages: Math.ceil(total / limitNum),
       },
+    };
+  }
+
+  async deposit(userId: string, data: DepositInput) {
+    const account = await prisma.account.findUnique({
+      where: { userId },
+      select: { id: true, balance: true },
+    });
+
+    if (!account) {
+      throw new AppError(404, 'Account not found');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          accountId: account.id,
+          type: 'DEPOSIT',
+          amount: new Decimal(data.amount),
+          description: data.description || 'Deposit',
+        },
+      });
+
+      const updatedAccount = await tx.account.update({
+        where: { id: account.id },
+        data: {
+          balance: {
+            increment: new Decimal(data.amount),
+          },
+        },
+      });
+
+      return {
+        transaction,
+        newBalance: updatedAccount.balance,
+      };
+    });
+
+    return {
+      transaction: toTransactionResponse(result.transaction),
+      balance: result.newBalance.toString(),
+      message: 'Deposit successful',
     };
   }
 }

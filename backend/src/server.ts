@@ -28,7 +28,6 @@ function startSessionCleanup(): void {
   const cleanupInterval = intervalHours * 60 * 60 * 1000;
 
   setInterval(cleanupExpiredSessions, cleanupInterval);
-  cleanupExpiredSessions();
 }
 
 function setupGracefulShutdown(server: Server): void {

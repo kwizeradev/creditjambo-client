@@ -199,7 +199,7 @@ describe('Account Service', () => {
 
       expect(result.pagination.limit).toBe(3);
       expect(result.pagination.page).toBe(2);
-      expect(result.transactions).toHaveLength(1); // 4 total, skip 3, take 3 -> 1 result
+      expect(result.transactions).toHaveLength(1);
     });
 
     it('should filter by startDate only', async () => {
@@ -222,6 +222,97 @@ describe('Account Service', () => {
 
       expect(result.transactions).toHaveLength(2);
       expect(result.pagination.total).toBe(2);
+    });
+  });
+
+  describe('deposit', () => {
+    it('should deposit money successfully', async () => {
+      const result = await accountService.deposit(testUserId, {
+        amount: 500,
+        description: 'Test deposit',
+      });
+
+      expect(result.transaction.type).toBe('DEPOSIT');
+      expect(result.transaction.amount).toBe('500');
+      expect(result.transaction.description).toBe('Test deposit');
+      expect(result.balance).toBe('1500');
+    });
+
+    it('should use default description if not provided', async () => {
+      const result = await accountService.deposit(testUserId, {
+        amount: 250,
+      });
+
+      expect(result.transaction.description).toBe('Deposit');
+      expect(result.balance).toBe('1250');
+    });
+
+    it('should handle decimal amounts correctly', async () => {
+      const result = await accountService.deposit(testUserId, {
+        amount: 123.45,
+        description: 'Decimal deposit',
+      });
+
+      expect(result.transaction.amount).toBe('123.45');
+      expect(result.balance).toBe('1123.45');
+    });
+
+    it('should create transaction record', async () => {
+      await accountService.deposit(testUserId, {
+        amount: 500,
+        description: 'Test deposit',
+      });
+
+      const transactions = await prisma.transaction.findMany({
+        where: { accountId: testAccountId },
+      });
+
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0].type).toBe('DEPOSIT');
+      expect(transactions[0].amount.toString()).toBe('500');
+    });
+
+    it('should update account balance atomically', async () => {
+      await accountService.deposit(testUserId, {
+        amount: 300,
+      });
+
+      const updatedBalance = await prisma.account.findUnique({
+        where: { id: testAccountId },
+        select: { balance: true },
+      });
+
+      expect(updatedBalance?.balance.toString()).toBe('1300');
+    });
+
+    it('should accumulate multiple deposits', async () => {
+      await accountService.deposit(testUserId, { amount: 100 });
+      await accountService.deposit(testUserId, { amount: 200 });
+      await accountService.deposit(testUserId, { amount: 300 });
+
+      const result = await accountService.getAccountBalance(testUserId);
+      expect(result.balance).toBe('1600');
+    });
+
+    it('should throw error for non-existent account', async () => {
+      await expect(accountService.deposit('non-existent-id', { amount: 100 })).rejects.toThrow(
+        'Account not found',
+      );
+    });
+
+    it('should maintain data consistency on transaction failure', async () => {
+      const initialBalance = await prisma.account.findUnique({
+        where: { id: testAccountId },
+      });
+
+      try {
+        await accountService.deposit(testUserId, { amount: 100 });
+      } catch {
+        const currentBalance = await prisma.account.findUnique({
+          where: { id: testAccountId },
+        });
+        expect(currentBalance?.balance).toEqual(initialBalance?.balance);
+      }
     });
   });
 });
