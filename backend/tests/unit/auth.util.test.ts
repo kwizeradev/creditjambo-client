@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import crypto from 'crypto';
+
 import {
   hashPassword,
   verifyPassword,
@@ -128,11 +129,29 @@ describe('Auth Utility', () => {
 
       expect(isValid).toBe(false);
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Error during password verification:',
-        expect.any(Error),
+        'Password verification error:',
+        'Mocked crypto error',
       );
 
       // Restore original function
+      crypto.timingSafeEqual = originalTimingSafeEqual;
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle non-Error exceptions', () => {
+      const password = 'TestPassword123!';
+      const { salt, passwordHash } = hashPassword(password);
+
+      const originalTimingSafeEqual = crypto.timingSafeEqual;
+      crypto.timingSafeEqual = vi.fn().mockImplementation(() => {
+        throw 'string error';
+      });
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      expect(verifyPassword(password, salt, passwordHash)).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith('Password verification error:', 'Unknown error');
+
       crypto.timingSafeEqual = originalTimingSafeEqual;
       consoleSpy.mockRestore();
     });

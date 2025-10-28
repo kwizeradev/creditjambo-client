@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import authService from '@/services/auth.service';
-import { LoginUserInput, RegisterUserInput, RefreshTokenInput } from '@/dtos';
+import { LoginUserInput, RegisterUserInput, RefreshTokenInput, LoginSuccessResponse } from '@/dtos';
 
 export class AuthController {
   async register(req: Request, res: Response): Promise<void> {
@@ -35,12 +35,13 @@ export class AuthController {
       return;
     }
 
+    const successResult = result as LoginSuccessResponse & { message: string };
     res.status(200).json({
       status: 'success',
-      message: result.message,
+      message: successResult.message,
       data: {
-        user: result.user,
-        tokens: result.tokens,
+        user: successResult.user,
+        tokens: successResult.tokens,
       },
     });
   }

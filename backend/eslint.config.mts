@@ -55,6 +55,7 @@ export default [
       '@typescript-eslint': tsPlugin,
       prettier,
     },
+
     rules: {
       ...tsPlugin.configs.recommended.rules,
       ...prettierConfig.rules,

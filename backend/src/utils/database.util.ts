@@ -14,3 +14,14 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 export async function disconnectDatabase(): Promise<void> {
   await prisma.$disconnect();
 }
+
+export async function cleanupExpiredSessions(): Promise<void> {
+  try {
+    const result = await prisma.session.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+    console.log(`Cleaned up ${result.count} expired sessions`);
+  } catch (error) {
+    console.error('Failed to cleanup expired sessions:', error);
+  }
+}

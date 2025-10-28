@@ -1,11 +1,15 @@
 import { CorsOptions } from 'cors';
 import { rateLimit } from 'express-rate-limit';
 
+const DEFAULT_WINDOW_MS = 15 * 60 * 1000;
+const DEFAULT_AUTH_LIMIT = 5;
+const DEFAULT_GENERAL_LIMIT = 100;
+const DEFAULT_TRANSACTION_WINDOW_MS = 5 * 60 * 1000;
+const DEFAULT_TRANSACTION_LIMIT = 10;
+
 export const authLimiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS)
-    : 15 * 60 * 1000,
-  max: process.env.AUTH_RATE_LIMIT_MAX ? parseInt(process.env.AUTH_RATE_LIMIT_MAX) : 5,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_WINDOW_MS.toString()),
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || DEFAULT_AUTH_LIMIT.toString()),
   message: {
     status: 'error',
     message: 'Too many authentication attempts. Please try again in 15 minutes.',
@@ -16,10 +20,8 @@ export const authLimiter = rateLimit({
 });
 
 export const generalLimiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS)
-    : 15 * 60 * 1000,
-  max: process.env.RATE_LIMIT_MAX_REQUESTS ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) : 100,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_WINDOW_MS.toString()),
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || DEFAULT_GENERAL_LIMIT.toString()),
   message: {
     status: 'error',
     message: 'Too many requests. Please try again later.',
@@ -29,8 +31,10 @@ export const generalLimiter = rateLimit({
 });
 
 export const transactionLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 10,
+  windowMs: parseInt(
+    process.env.TRANSACTION_RATE_LIMIT_WINDOW_MS || DEFAULT_TRANSACTION_WINDOW_MS.toString(),
+  ),
+  max: parseInt(process.env.TRANSACTION_RATE_LIMIT_MAX || DEFAULT_TRANSACTION_LIMIT.toString()),
   message: {
     status: 'error',
     message: 'Too many transaction requests. Please wait a moment.',

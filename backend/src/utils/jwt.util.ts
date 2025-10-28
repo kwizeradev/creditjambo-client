@@ -10,7 +10,6 @@ export interface AccessTokenPayload {
 export interface RefreshTokenPayload {
   userId: string;
   deviceId: string;
-  sessionId: string;
 }
 
 export function generateAccessToken(payload: AccessTokenPayload): string {
