@@ -111,6 +111,39 @@ Content-Type: application/json
 }
 ```
 
+### 5. Refresh Access Token
+
+When the access token expires (after 15 minutes), use the refresh token:
+
+```bash
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGc..."
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "eyJhbGc...",
+    "refreshToken": "eyJhbGc..."
+  }
+}
+```
+
+## Token Lifecycle
+
+1. **Access Token**: Valid for 15 minutes
+2. **Refresh Token**: Valid for 7 days
+3. When access token expires, use refresh token to get new access token
+4. When refresh token expires, user must login again
+
 ## Error Responses
 
 ### Invalid Credentials (401)
