@@ -1,10 +1,11 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from '@/utils/database.util';
 import { errorHandler, notFoundHandler, requestLogger } from '@/middlewares';
+import { sanitizeInput, preventNoSQLInjection } from './middlewares/sanitize.middleware';
+import { generalLimiter, authLimiter, corsOptions, helmetConfig } from './config/security';
 
 // Routes
 import authRoutes from '@/routes/auth.routes';
@@ -14,38 +15,24 @@ dotenv.config();
 const app: Application = express();
 const PORT = process.env.PORT || 4000;
 
+app.use(helmet(helmetConfig));
+app.use(cors(corsOptions));
+
 if (process.env.NODE_ENV === 'development') {
   app.use(requestLogger);
 }
 
-app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || '*',
-    credentials: true,
-  }),
-);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.',
-});
+app.use(sanitizeInput);
+app.use(preventNoSQLInjection);
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.AUTH_RATE_LIMIT_MAX ? parseInt(process.env.AUTH_RATE_LIMIT_MAX) : 5,
-  message: 'Too many authentication attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+app.set('trust proxy', 1);
 
-app.use(limiter);
+app.use('/api/', generalLimiter);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.get('/api/health', async (req: Request, res: Response) => {
+app.get('/api/health', async (_req: Request, res: Response) => {
   const dbConnected = await checkDatabaseConnection();
 
   res.status(dbConnected ? 200 : 503).json({
@@ -62,10 +49,29 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log('=================================');
+  console.log('Credit Jambo Savings API Server');
+  console.log('=================================');
+  console.log(`Port: ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Health: http://localhost:${PORT}/api/health`);
+  console.log(`Security: Enabled`);
+  console.log('=================================');
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });
 
 export default app;

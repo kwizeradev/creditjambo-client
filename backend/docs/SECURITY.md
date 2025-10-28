@@ -1,78 +1,215 @@
 # Security Implementation
 
-## Password Hashing
+## Overview
 
-### Algorithm: SHA-512 with PBKDF2
+CJSavings implements multiple layers of security to protect user data and prevent attacks.
 
-It uses SHA-512 with PBKDF2 (Password-Based Key Derivation Function 2) for password hashing.
+## Security Layers
+
+### 1. Password Security
+
+**Implementation:**
+
+- SHA-512 hashing with PBKDF2
+- 100,000 iterations
+- Random 16-byte salt per password
+- Constant-time comparison
+
+**Protection Against:**
+
+- ✅ Rainbow table attacks
+- ✅ Brute force attacks
+- ✅ Dictionary attacks
+- ✅ Timing attacks
+
+### 2. Authentication & Authorization
+
+**JWT Tokens:**
+
+- Separate access and refresh tokens
+- Short-lived access tokens (15 minutes)
+- Long-lived refresh tokens (7 days)
+- Tokens signed with strong secrets
+- Device-based authentication
+
+**Protection Against:**
+
+- ✅ Token theft (short expiry)
+- ✅ Session hijacking (device binding)
+- ✅ Replay attacks (token rotation)
+
+### 3. Rate Limiting
+
+**Authentication Endpoints:**
+
+- 5 requests per 15 minutes per IP
+- Prevents brute force login attempts
+
+**General API:**
+
+- 100 requests per 15 minutes per IP
+- Prevents API abuse
+
+**Transactions:**
+
+- 10 requests per 5 minutes per IP
+- Prevents rapid-fire transactions
+
+**Protection Against:**
+
+- ✅ Brute force attacks
+- ✅ DDoS attacks
+- ✅ API abuse
+- ✅ Credential stuffing
+
+### 4. HTTP Security Headers (Helmet)
+
+**Implemented Headers:**
+
+```
+Content-Security-Policy
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000
+```
+
+**Protection Against:**
+
+- ✅ XSS attacks
+- ✅ Clickjacking
+- ✅ MIME sniffing
+- ✅ Man-in-the-middle attacks
+
+### 5. CORS (Cross-Origin Resource Sharing)
 
 **Configuration:**
 
-- **Hash Function**: SHA-512
-- **Iterations**: 100,000
-- **Salt Length**: 16 bytes (128 bits)
-- **Key Length**: 64 bytes (512 bits)
+- Whitelist specific origins
+- Credentials support enabled
+- Proper headers exposed
 
-### Why PBKDF2 with 100,000 Iterations?
+**Protection Against:**
 
-1. **Computational Cost**: Each password hash takes ~10-50ms, making brute-force attacks extremely expensive
-2. **Industry Standard**: Recommended by NIST, OWASP, and security experts
-3. **Adjustable**: Can increase iterations as hardware improves
-4. **Time Tested**: PBKDF2 has been thoroughly analyzed and proven secure
+- ✅ Unauthorized cross-origin requests
+- ✅ CSRF attacks
+- ✅ Data leakage
 
-### Implementation Details
+### 6. Input Validation & Sanitization
 
-#### Hashing Process
+**Validation (Zod):**
 
-```typescript
-hashPassword(password: string, salt?: string)
+- Type checking
+- Format validation
+- Range validation
+- Custom rules
+
+**Sanitization:**
+
+- HTML tag removal
+- Script tag removal
+- Special character escaping
+- NoSQL injection prevention
+
+**Protection Against:**
+
+- ✅ XSS attacks
+- ✅ SQL/NoSQL injection
+- ✅ Command injection
+- ✅ Path traversal
+
+### 7. Device Verification
+
+**Implementation:**
+
+- Admin must verify each device
+- Device bound to user
+- Device status checked on every request
+- Unverified devices cannot perform operations
+
+**Protection Against:**
+
+- ✅ Unauthorized device access
+- ✅ Account takeover
+- ✅ Stolen credentials usage
+
+### 8. Session Management
+
+**Implementation:**
+
+- Sessions stored in database
+- Session expiry (7 days)
+- Inactivity timeout (30 minutes)
+- Session cleanup on logout
+- One session per device
+
+**Protection Against:**
+
+- ✅ Session fixation
+- ✅ Session hijacking
+- ✅ Concurrent sessions
+
+### Case : Production Checklist
+
+- [ ] Use HTTPS only
+- [ ] Enable refresh token rotation
+- [ ] Use environment-specific secrets
+- [ ] Enable database SSL connections
+- [ ] Configure strict CORS origins
+- [ ] Set up monitoring and alerts
+- [ ] Implement audit logging
+- [ ] Regular security updates
+- [ ] Backup encryption
+- [ ] API key rotation policy
+
+## Rate Limit Details
+
+| Endpoint Pattern         | Window | Max Requests | Purpose             |
+| ------------------------ | ------ | ------------ | ------------------- |
+| `/api/auth/*`            | 15 min | 5            | Prevent brute force |
+| `/api/accounts/deposit`  | 5 min  | 10           | Prevent abuse       |
+| `/api/accounts/withdraw` | 5 min  | 10           | Prevent abuse       |
+| `/api/*` (general)       | 15 min | 100          | General protection  |
+
+## Error Handling
+
+**Security Considerations:**
+
+- Generic error messages in production
+- Detailed errors only in development
+- No stack traces exposed
+- No database errors leaked
+- Rate limit headers included
+
+## Monitoring & Logging
+
+**What to Log:**
+
+- ✅ Failed login attempts
+- ✅ Rate limit hits
+- ✅ Authentication errors
+- ✅ Permission denials
+- ✅ Input validation failures
+
+**What NOT to Log:**
+
+- ❌ Passwords (plain or hashed)
+- ❌ JWT tokens
+- ❌ Personal information
+- ❌ Credit card numbers
+- ❌ Session IDs
+
+## Security Testing
+
+Run security tests regularly:
+
+```bash
+# Run tests
+npm test
+
+# Check for vulnerabilities
+npm audit
+
+# Fix vulnerabilities
+npm audit fix
 ```
-
-1. Generate random 16-byte salt (if not provided)
-2. Apply PBKDF2 with SHA-512, 100,000 iterations
-3. Return both salt and hash (both stored in database)
-
-#### Verification Process
-
-```typescript
-verifyPassword(password: string, salt: string, passwordHash: string)
-```
-
-1. Retrieve stored salt and hash from database
-2. Hash the provided password with the stored salt
-3. Use constant-time comparison to prevent timing attacks
-4. Return true/false
-
-### Security Features
-
-✅ **Random Salt**: Each password gets unique 16-byte salt  
-✅ **High Iteration Count**: 100,000 iterations prevent brute-force  
-✅ **Constant-Time Comparison**: Prevents timing attacks  
-✅ **No Plaintext Storage**: Passwords never stored in plain text  
-✅ **Cryptographically Secure**: Uses Node.js crypto module
-
-### Attack Resistance
-
-| Attack Type       | Protection                                        |
-| ----------------- | ------------------------------------------------- |
-| Rainbow Tables    | Unique salts make precomputed tables useless      |
-| Brute Force       | 100,000 iterations make each attempt expensive    |
-| Dictionary Attack | Computational cost makes these impractical        |
-| Timing Attack     | Constant-time comparison prevents timing analysis |
-
-### Password Requirements
-
-When implementing validation, enforce:
-
-- Minimum 8 characters
-- At least 1 number
-- At least 1 uppercase letter (optional but recommended)
-- At least 1 special character (optional but recommended)
-
-### Token Security
-
-For refresh tokens and other sensitive tokens:
-
-1. **Generation**: Use `crypto.randomBytes()` for cryptographically secure random tokens
-2. **Storage**: Hash tokens before storing in database
-3. **Comparison**: Use constant-time comparison when verifying
