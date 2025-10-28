@@ -7,7 +7,11 @@ export function validate(schema: ZodType, source: 'body' | 'query' | 'params' = 
       const data = req[source];
       const validated = schema.parse(data);
 
-      req[source] = validated;
+      if (source === 'query') {
+        Object.assign(req.query, validated);
+      } else {
+        req[source] = validated;
+      }
 
       next();
     } catch (error) {

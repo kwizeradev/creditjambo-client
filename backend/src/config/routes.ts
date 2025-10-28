@@ -2,6 +2,7 @@ import { Application, Request, Response } from 'express';
 import { checkDatabaseConnection } from '@/utils/database.util';
 import { authLimiter } from './security';
 import authRoutes from '@/routes/auth.routes';
+import accountRoutes from '@/routes/account.routes';
 
 export function configureRoutes(app: Application): void {
   configureRootRoute(app);
@@ -39,4 +40,5 @@ function configureHealthRoute(app: Application): void {
 
 function configureApiRoutes(app: Application): void {
   app.use('/api/auth', authLimiter, authRoutes);
+  app.use('/api/account', accountRoutes);
 }

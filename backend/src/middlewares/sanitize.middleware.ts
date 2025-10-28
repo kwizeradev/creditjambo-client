@@ -60,7 +60,7 @@ function sanitizeObjectProperties(
   const sanitized: Record<string, unknown> = {};
 
   for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       sanitized[key] = sanitizeObject(obj[key], depth + 1);
     }
   }
@@ -138,7 +138,7 @@ function cleanObject(obj: any, depth: number = 0): any {
   const cleaned: any = Array.isArray(obj) ? [] : {};
 
   for (const key in obj) {
-    if (obj.hasOwnProperty(key) && isValidKey(key)) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && isValidKey(key)) {
       cleaned[key] = cleanObject(obj[key], depth + 1);
     }
   }
