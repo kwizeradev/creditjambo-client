@@ -60,7 +60,7 @@ export default [
       ...prettierConfig.rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
       'prettier/prettier': 'error',

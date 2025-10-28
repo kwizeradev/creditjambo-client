@@ -1,14 +1,19 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from '@/utils/database.util';
+import { errorHandler, notFoundHandler, requestLogger } from '@/middlewares';
 
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 4000;
+
+if (process.env.NODE_ENV === 'development') {
+  app.use(requestLogger);
+}
 
 app.use(helmet());
 app.use(
@@ -41,21 +46,8 @@ app.get('/api/health', async (req: Request, res: Response) => {
   });
 });
 
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    status: 'error',
-    message: 'Route not found',
-  });
-});
-
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err.message);
-
-  res.status(500).json({
-    status: 'error',
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
