@@ -1,9 +1,8 @@
-import { Router } from 'express';
 import authController from '@/controllers/auth.controller';
-import { validateBody } from '@/middlewares/validation.middleware';
-import { LoginUserSchema, RegisterUserSchema } from '@/dtos/user.dto';
-import { asyncHandler } from '@/middlewares/error.middleware';
 import { RefreshTokenSchema } from '@/dtos';
+import { LoginUserSchema, RegisterUserSchema } from '@/dtos/user.dto';
+import { asyncHandler, authenticate, validateBody } from '@/middlewares';
+import { Router } from 'express';
 
 const router = Router();
 
@@ -24,5 +23,7 @@ router.post(
   validateBody(RefreshTokenSchema),
   asyncHandler(authController.refresh.bind(authController)),
 );
+
+router.post('/logout', authenticate, asyncHandler(authController.logout.bind(authController)));
 
 export default router;

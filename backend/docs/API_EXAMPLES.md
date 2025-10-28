@@ -144,6 +144,29 @@ Content-Type: application/json
 3. When access token expires, use refresh token to get new access token
 4. When refresh token expires, user must login again
 
+### 6. Logout
+
+```bash
+POST /api/auth/logout
+Authorization: Bearer {accessToken}
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Logout successful"
+}
+```
+
+## What Happens on Logout
+
+1. ✅ Session deleted from database
+2. ✅ Refresh token invalidated
+3. ✅ Access token remains valid until expiry (but session is gone)
+4. ✅ User must login again to get new tokens
+
 ## Error Responses
 
 ### Invalid Credentials (401)

@@ -219,6 +219,30 @@ export class AuthService {
       message: 'Token refreshed successfully',
     };
   }
+
+  async logoutUser(userId: string, deviceId: string) {
+    const device = await prisma.device.findUnique({
+      where: { deviceId },
+    });
+
+    if (!device) {
+      throw new AppError(404, 'Device not found');
+    }
+    if (device.userId !== userId) {
+      throw new AppError(403, 'Unauthorized device access');
+    }
+    const deletedSessions = await prisma.session.deleteMany({
+      where: {
+        userId,
+        deviceId: device.id,
+      },
+    });
+
+    return {
+      message: 'Logout successful',
+      sessionsDeleted: deletedSessions.count,
+    };
+  }
 }
 
 export default new AuthService();

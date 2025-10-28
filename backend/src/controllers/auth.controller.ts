@@ -59,6 +59,23 @@ export class AuthController {
       },
     });
   }
+
+  async logout(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    const result = await authService.logoutUser(req.user.userId, req.user.deviceId);
+
+    res.status(200).json({
+      status: 'success',
+      message: result.message,
+    });
+  }
 }
 
 export default new AuthController();
