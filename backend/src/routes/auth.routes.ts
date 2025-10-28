@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import authController from '@/controllers/auth.controller';
 import { validateBody } from '@/middlewares/validation.middleware';
-import { RegisterUserSchema } from '@/dtos/user.dto';
+import { LoginUserSchema, RegisterUserSchema } from '@/dtos/user.dto';
 import { asyncHandler } from '@/middlewares/error.middleware';
 
 const router = Router();
@@ -38,4 +38,31 @@ router.post(
   asyncHandler(authController.register.bind(authController)),
 );
 
+/**
+ * @route   POST /api/auth/login
+ * @desc    Login user with device verification check
+ * @access  Public
+ *
+ * @body {
+ *   email: string,
+ *   password: string,
+ *   deviceId: string
+ * }
+ *
+ * @returns {
+ *   devicePending: true  // If device not verified
+ * } OR {
+ *   user: UserResponse,
+ *   tokens: { accessToken, refreshToken }  // If device verified
+ * }
+ *
+ * @throws 401 - Invalid credentials
+ * @throws 403 - Device registered to different user
+ */
+
+router.post(
+  '/login',
+  validateBody(LoginUserSchema),
+  asyncHandler(authController.login.bind(authController)),
+);
 export default router;
