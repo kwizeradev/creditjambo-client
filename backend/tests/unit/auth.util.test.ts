@@ -5,7 +5,7 @@ import {
   verifyPassword,
   generateSecureToken,
   hashToken,
-} from '../../src/utils/auth.utils';
+} from '../../src/utils/auth.util';
 
 describe('Auth Utility', () => {
   describe('hashPassword', () => {

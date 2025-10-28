@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import { checkDatabaseConnection } from '@/utils/database.util';
 import { errorHandler, notFoundHandler, requestLogger } from '@/middlewares';
 
+// Routes
+import authRoutes from '@/routes/auth.routes';
+
 dotenv.config();
 
 const app: Application = express();
@@ -29,6 +32,14 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(limiter);
 
 app.use(express.json());
@@ -45,6 +56,8 @@ app.get('/api/health', async (req: Request, res: Response) => {
     database: dbConnected ? 'connected' : 'disconnected',
   });
 });
+
+app.use('/api/auth', authLimiter, authRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
