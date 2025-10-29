@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import pushService from '../../src/services/push.service';
 import prisma from '../../src/config/database';
 import { useTestDb } from '../utils/test-db-helper';
@@ -223,6 +223,77 @@ describe('Push Service', () => {
 
       expect(result.sent).toBe(2);
       expect(result.tokens).toHaveLength(2);
+    });
+
+    it('should return zero sent when no valid expo tokens', async () => {
+      await db.createPushToken({
+        userId: testUserId,
+        token: 'invalid-token-format',
+        platform: 'ios',
+      });
+
+      await db.createPushToken({
+        userId: testUserId,
+        token: 'another-invalid-token',
+        platform: 'android',
+      });
+
+      const result = await pushService.sendNotification(testUserId, {
+        title: 'Test',
+        body: 'Test message',
+      });
+
+      expect(result.sent).toBe(0);
+      expect(result.failed).toBe(0);
+      expect(result.tokens).toHaveLength(0);
+    });
+
+    it('should handle errors during notification sending', async () => {
+      await pushService.savePushToken(testUserId, {
+        token: 'ExponentPushToken[test]',
+        platform: 'ios',
+      });
+
+      const originalConsoleLog = console.log;
+      console.log = vi.fn().mockImplementation(() => {
+        throw new Error('Simulated error during notification');
+      });
+
+      const result = await pushService.sendNotification(testUserId, {
+        title: 'Test',
+        body: 'Test message',
+      });
+
+      expect(result.sent).toBe(0);
+      expect(result.failed).toBe(1);
+      expect(result.tokens).toHaveLength(0);
+      expect(result.error).toBe('Simulated error during notification');
+
+      console.log = originalConsoleLog;
+    });
+
+    it('should handle non-Error exceptions during notification sending', async () => {
+      await pushService.savePushToken(testUserId, {
+        token: 'ExponentPushToken[test]',
+        platform: 'ios',
+      });
+
+      const originalConsoleLog = console.log;
+      console.log = vi.fn().mockImplementation(() => {
+        throw 'String error instead of Error object';
+      });
+
+      const result = await pushService.sendNotification(testUserId, {
+        title: 'Test',
+        body: 'Test message',
+      });
+
+      expect(result.sent).toBe(0);
+      expect(result.failed).toBe(1);
+      expect(result.tokens).toHaveLength(0);
+      expect(result.error).toBe('Unknown error');
+
+      console.log = originalConsoleLog;
     });
   });
 
