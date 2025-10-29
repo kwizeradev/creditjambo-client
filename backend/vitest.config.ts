@@ -20,6 +20,7 @@ export default defineConfig({
         '**/*.config.ts',
         '**/*.d.ts',
         'src/generated/',
+        'src/config/',
       ],
     },
   },

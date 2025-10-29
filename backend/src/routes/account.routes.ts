@@ -1,6 +1,6 @@
 import { transactionLimiter } from '@/config/security';
 import accountController from '@/controllers/account.controller';
-import { DepositSchema, TransactionQuerySchema } from '@/dtos';
+import { DepositSchema, TransactionQuerySchema, WithdrawSchema } from '@/dtos';
 import {
   asyncHandler,
   authenticate,
@@ -35,6 +35,15 @@ router.post(
   transactionLimiter,
   validateBody(DepositSchema),
   asyncHandler(accountController.deposit.bind(accountController)),
+);
+
+router.post(
+  '/withdraw',
+  authenticate,
+  ensureDeviceVerified,
+  transactionLimiter,
+  validateBody(WithdrawSchema),
+  asyncHandler(accountController.withdraw.bind(accountController)),
 );
 
 export default router;

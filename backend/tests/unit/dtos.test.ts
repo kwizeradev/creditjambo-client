@@ -7,7 +7,20 @@ import {
   toTransactionWithAccountResponse,
   TransactionQuerySchema,
 } from '../../src/dtos/transaction.dto';
-import type { Role, TransactionType } from '../../src/generated/prisma';
+import {
+  AccountResponseSchema,
+  toAccountResponse,
+  toDecimal,
+  formatCurrency,
+} from '../../src/dtos/account.dto';
+import { PaginationQuerySchema, successResponse, errorResponse } from '../../src/dtos/common.dto';
+import {
+  DeviceResponseSchema,
+  DeviceVerificationSchema,
+  toDeviceResponse,
+  toDeviceWithUserResponse,
+} from '../../src/dtos/device.dto';
+import type { Role, TransactionType, Account, Device, User } from '../../src/generated/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 
 describe('DTO Validation', () => {
@@ -339,6 +352,289 @@ describe('DTO Validation', () => {
         const response = toTransactionWithAccountResponse(dbTransaction);
 
         expect(response.account).toBeUndefined();
+      });
+    });
+  });
+
+  describe('Account DTOs', () => {
+    describe('AccountResponseSchema', () => {
+      it('should validate correct account response data', () => {
+        const validData = {
+          id: 'acc-123',
+          userId: 'user-123',
+          balance: '1000.50',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const result = AccountResponseSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('toAccountResponse', () => {
+      it('should convert account to response DTO', () => {
+        const dbAccount: Account = {
+          id: 'acc-123',
+          userId: 'user-123',
+          balance: new Decimal('1000.50'),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const response = toAccountResponse(dbAccount);
+
+        expect(response.id).toBe('acc-123');
+        expect(response.userId).toBe('user-123');
+        expect(response.balance).toBe('1000.5');
+        expect(response.createdAt).toBeInstanceOf(Date);
+        expect(response.updatedAt).toBeInstanceOf(Date);
+      });
+    });
+
+    describe('toDecimal', () => {
+      it('should convert string to Decimal', () => {
+        const result = toDecimal('100.50');
+        expect(result).toBeInstanceOf(Decimal);
+        expect(result.toString()).toBe('100.5');
+      });
+
+      it('should convert number to Decimal', () => {
+        const result = toDecimal(100.5);
+        expect(result).toBeInstanceOf(Decimal);
+        expect(result.toString()).toBe('100.5');
+      });
+    });
+
+    describe('formatCurrency', () => {
+      it('should format string amount as RWF currency', () => {
+        const result = formatCurrency('1000.50');
+        expect(result).toContain('RF');
+        expect(result).toContain('1,001');
+      });
+
+      it('should format Decimal amount as RWF currency', () => {
+        const decimal = new Decimal('1000.50');
+        const result = formatCurrency(decimal);
+        expect(result).toContain('RF');
+        expect(result).toContain('1,001');
+      });
+    });
+  });
+
+  describe('Common DTOs', () => {
+    describe('PaginationQuerySchema', () => {
+      it('should validate with default values', () => {
+        const result = PaginationQuerySchema.safeParse({});
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.page).toBe(1);
+          expect(result.data.limit).toBe(20);
+        }
+      });
+
+      it('should transform string values to numbers', () => {
+        const validData = {
+          page: '5',
+          limit: '50',
+        };
+
+        const result = PaginationQuerySchema.safeParse(validData);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.page).toBe(5);
+          expect(result.data.limit).toBe(50);
+        }
+      });
+
+      it('should reject invalid page values', () => {
+        const invalidData = { page: '0' };
+        const result = PaginationQuerySchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject limit exceeding maximum', () => {
+        const invalidData = { limit: '200' };
+        const result = PaginationQuerySchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe('successResponse', () => {
+      it('should create success response with data', () => {
+        const data = { id: '123', name: 'Test' };
+        const result = successResponse(data);
+
+        expect(result.status).toBe('success');
+        expect(result.data).toEqual(data);
+        expect(result.message).toBeUndefined();
+      });
+
+      it('should create success response with data and message', () => {
+        const data = { id: '123', name: 'Test' };
+        const message = 'Operation successful';
+        const result = successResponse(data, message);
+
+        expect(result.status).toBe('success');
+        expect(result.data).toEqual(data);
+        expect(result.message).toBe(message);
+      });
+    });
+
+    describe('errorResponse', () => {
+      it('should create error response with message', () => {
+        const message = 'Something went wrong';
+        const result = errorResponse(message);
+
+        expect(result.status).toBe('error');
+        expect(result.message).toBe(message);
+        expect(result.errors).toBeUndefined();
+      });
+
+      it('should create error response with message and errors', () => {
+        const message = 'Validation failed';
+        const errors = [{ field: 'email', message: 'Invalid email' }];
+        const result = errorResponse(message, errors);
+
+        expect(result.status).toBe('error');
+        expect(result.message).toBe(message);
+        expect(result.errors).toEqual(errors);
+      });
+    });
+  });
+
+  describe('Device DTOs', () => {
+    describe('DeviceResponseSchema', () => {
+      it('should validate correct device response data', () => {
+        const validData = {
+          id: 'dev-123',
+          userId: 'user-123',
+          deviceId: 'device-456',
+          deviceInfo: 'iPhone 14',
+          verified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const result = DeviceResponseSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+
+      it('should allow null deviceInfo', () => {
+        const validData = {
+          id: 'dev-123',
+          userId: 'user-123',
+          deviceId: 'device-456',
+          deviceInfo: null,
+          verified: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const result = DeviceResponseSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('DeviceVerificationSchema', () => {
+      it('should validate correct verification data', () => {
+        const validData = {
+          deviceId: 'device-123',
+          verified: true,
+        };
+
+        const result = DeviceVerificationSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+
+      it('should reject empty deviceId', () => {
+        const invalidData = {
+          deviceId: '',
+          verified: true,
+        };
+
+        const result = DeviceVerificationSchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe('toDeviceResponse', () => {
+      it('should convert device to response DTO', () => {
+        const dbDevice: Device = {
+          id: 'dev-123',
+          userId: 'user-123',
+          deviceId: 'device-456',
+          deviceInfo: 'iPhone 14',
+          verified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const response = toDeviceResponse(dbDevice);
+
+        expect(response.id).toBe('dev-123');
+        expect(response.userId).toBe('user-123');
+        expect(response.deviceId).toBe('device-456');
+        expect(response.deviceInfo).toBe('iPhone 14');
+        expect(response.verified).toBe(true);
+        expect(response.createdAt).toBeInstanceOf(Date);
+        expect(response.updatedAt).toBeInstanceOf(Date);
+      });
+    });
+
+    describe('toDeviceWithUserResponse', () => {
+      it('should convert device with user to response DTO', () => {
+        const dbUser: User = {
+          id: 'user-123',
+          name: 'John Doe',
+          email: 'john@example.com',
+          passwordHash: 'hash',
+          salt: 'salt',
+          role: 'USER',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const dbDevice: Device & { user?: User } = {
+          id: 'dev-123',
+          userId: 'user-123',
+          deviceId: 'device-456',
+          deviceInfo: 'iPhone 14',
+          verified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user: dbUser,
+        };
+
+        const response = toDeviceWithUserResponse(dbDevice);
+
+        expect(response.id).toBe('dev-123');
+        expect(response.userId).toBe('user-123');
+        expect(response.deviceId).toBe('device-456');
+        expect(response.deviceInfo).toBe('iPhone 14');
+        expect(response.verified).toBe(true);
+        expect(response.user).toEqual({
+          id: 'user-123',
+          name: 'John Doe',
+          email: 'john@example.com',
+        });
+      });
+
+      it('should handle device without user', () => {
+        const dbDevice: Device = {
+          id: 'dev-123',
+          userId: 'user-123',
+          deviceId: 'device-456',
+          deviceInfo: 'iPhone 14',
+          verified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const response = toDeviceWithUserResponse(dbDevice);
+
+        expect(response.id).toBe('dev-123');
+        expect(response.user).toBeUndefined();
       });
     });
   });

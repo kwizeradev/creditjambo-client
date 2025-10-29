@@ -5,6 +5,9 @@ import accountService from '../../src/services/account.service';
 describe('Account Service', () => {
   let testUserId: string;
   let testAccountId: string;
+  let createdUserIds: string[] = [];
+  let createdAccountIds: string[] = [];
+  let createdTransactionIds: string[] = [];
 
   beforeEach(async () => {
     const user = await prisma.user.create({
@@ -18,6 +21,7 @@ describe('Account Service', () => {
     });
 
     testUserId = user.id;
+    createdUserIds.push(user.id);
 
     const account = await prisma.account.create({
       data: {
@@ -26,12 +30,29 @@ describe('Account Service', () => {
       },
     });
     testAccountId = account.id;
+    createdAccountIds.push(account.id);
   });
 
   afterEach(async () => {
-    await prisma.transaction.deleteMany({});
-    await prisma.account.deleteMany({});
-    await prisma.user.deleteMany({});
+    if (createdTransactionIds.length > 0) {
+      await prisma.transaction.deleteMany({
+        where: { id: { in: createdTransactionIds } },
+      });
+    }
+    if (createdAccountIds.length > 0) {
+      await prisma.account.deleteMany({
+        where: { id: { in: createdAccountIds } },
+      });
+    }
+    if (createdUserIds.length > 0) {
+      await prisma.user.deleteMany({
+        where: { id: { in: createdUserIds } },
+      });
+    }
+
+    createdUserIds = [];
+    createdAccountIds = [];
+    createdTransactionIds = [];
   });
 
   describe('getAccountBalance', () => {
@@ -52,38 +73,46 @@ describe('Account Service', () => {
 
   describe('getTransactionHistory', () => {
     beforeEach(async () => {
-      await prisma.transaction.createMany({
-        data: [
-          {
+      const transactions = await Promise.all([
+        prisma.transaction.create({
+          data: {
             accountId: testAccountId,
             type: 'DEPOSIT',
             amount: 500,
             description: 'Deposit 1',
             createdAt: new Date('2024-10-20'),
           },
-          {
+        }),
+        prisma.transaction.create({
+          data: {
             accountId: testAccountId,
             type: 'DEPOSIT',
             amount: 200,
             description: 'Deposit 2',
             createdAt: new Date('2024-10-22'),
           },
-          {
+        }),
+        prisma.transaction.create({
+          data: {
             accountId: testAccountId,
             type: 'WITHDRAW',
             amount: 150,
             description: 'Withdraw 1',
             createdAt: new Date('2024-10-24'),
           },
-          {
+        }),
+        prisma.transaction.create({
+          data: {
             accountId: testAccountId,
             type: 'WITHDRAW',
             amount: 100,
             description: 'Withdraw 2',
             createdAt: new Date('2024-10-26'),
           },
-        ],
-      });
+        }),
+      ]);
+
+      createdTransactionIds.push(...transactions.map((t: { id: string }) => t.id));
     });
 
     it('should return paginated transactions', async () => {
@@ -118,7 +147,7 @@ describe('Account Service', () => {
       });
 
       expect(result.transactions).toHaveLength(2);
-      expect(result.transactions.every((t) => t.type === 'DEPOSIT')).toBe(true);
+      expect(result.transactions.every((t: { type: string }) => t.type === 'DEPOSIT')).toBe(true);
     });
 
     it('should filter by transaction type (WITHDRAW)', async () => {
@@ -129,7 +158,7 @@ describe('Account Service', () => {
       });
 
       expect(result.transactions).toHaveLength(2);
-      expect(result.transactions.every((t) => t.type === 'WITHDRAW')).toBe(true);
+      expect(result.transactions.every((t: { type: string }) => t.type === 'WITHDRAW')).toBe(true);
     });
 
     it('should filter by date range', async () => {
@@ -150,7 +179,9 @@ describe('Account Service', () => {
         page: 1,
       });
 
-      const dates = result.transactions.map((t) => new Date(t.createdAt).getTime());
+      const dates = result.transactions.map((t: { createdAt: Date }) =>
+        new Date(t.createdAt).getTime(),
+      );
       const sortedDates = [...dates].sort((a, b) => b - a);
       expect(dates).toEqual(sortedDates);
     });
@@ -165,13 +196,15 @@ describe('Account Service', () => {
           role: 'USER',
         },
       });
+      createdUserIds.push(newUser.id);
 
-      await prisma.account.create({
+      const newAccount = await prisma.account.create({
         data: {
           userId: newUser.id,
           balance: 0,
         },
       });
+      createdAccountIds.push(newAccount.id);
 
       const result = await accountService.getTransactionHistory(newUser.id, {
         limit: 20,
@@ -312,6 +345,120 @@ describe('Account Service', () => {
           where: { id: testAccountId },
         });
         expect(currentBalance?.balance).toEqual(initialBalance?.balance);
+      }
+    });
+  });
+
+  describe('withdraw', () => {
+    it('should withdraw money successfully', async () => {
+      const result = await accountService.withdraw(testUserId, {
+        amount: 300,
+        description: 'Test withdrawal',
+      });
+
+      expect(result.transaction.type).toBe('WITHDRAW');
+      expect(result.transaction.amount).toBe('300');
+      expect(result.transaction.description).toBe('Test withdrawal');
+      expect(result.balance).toBe('700');
+    });
+
+    it('should use default description if not provided', async () => {
+      const result = await accountService.withdraw(testUserId, {
+        amount: 200,
+      });
+
+      expect(result.transaction.description).toBe('Withdrawal');
+      expect(result.balance).toBe('800');
+    });
+
+    it('should handle decimal amounts correctly', async () => {
+      const result = await accountService.withdraw(testUserId, {
+        amount: 123.45,
+        description: 'Decimal withdrawal',
+      });
+
+      expect(result.transaction.amount).toBe('123.45');
+      expect(result.balance).toBe('876.55');
+    });
+
+    it('should throw error for insufficient funds', async () => {
+      await expect(accountService.withdraw(testUserId, { amount: 2000 })).rejects.toThrow(
+        'Insufficient funds',
+      );
+    });
+
+    it('should allow withdrawal of exact balance', async () => {
+      const result = await accountService.withdraw(testUserId, {
+        amount: 1000,
+        description: 'Withdraw all',
+      });
+
+      expect(result.balance).toBe('0');
+    });
+
+    it('should throw error when withdrawing from zero balance', async () => {
+      await accountService.withdraw(testUserId, { amount: 1000 });
+
+      await expect(accountService.withdraw(testUserId, { amount: 1 })).rejects.toThrow(
+        'Insufficient funds',
+      );
+    });
+
+    it('should create transaction record', async () => {
+      await accountService.withdraw(testUserId, {
+        amount: 250,
+        description: 'Test withdrawal',
+      });
+
+      const transactions = await prisma.transaction.findMany({
+        where: { accountId: testAccountId, type: 'WITHDRAW' },
+      });
+
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0].amount.toString()).toBe('250');
+    });
+
+    it('should update account balance atomically', async () => {
+      await accountService.withdraw(testUserId, { amount: 400 });
+
+      const updatedBalance = await prisma.account.findUnique({
+        where: { id: testAccountId },
+        select: { balance: true },
+      });
+
+      expect(updatedBalance?.balance.toString()).toBe('600');
+    });
+
+    it('should process multiple withdrawals correctly', async () => {
+      await accountService.withdraw(testUserId, { amount: 100 });
+      await accountService.withdraw(testUserId, { amount: 200 });
+      await accountService.withdraw(testUserId, { amount: 150 });
+
+      const result = await accountService.getAccountBalance(testUserId);
+      expect(result.balance).toBe('550');
+    });
+
+    it('should throw error for non-existent account', async () => {
+      await expect(accountService.withdraw('non-existent-id', { amount: 100 })).rejects.toThrow(
+        'Account not found',
+      );
+    });
+
+    it('should maintain balance after mixed operations', async () => {
+      await accountService.deposit(testUserId, { amount: 500 });
+      await accountService.withdraw(testUserId, { amount: 300 });
+      await accountService.deposit(testUserId, { amount: 200 });
+      await accountService.withdraw(testUserId, { amount: 600 });
+
+      const result = await accountService.getAccountBalance(testUserId);
+      expect(result.balance).toBe('800');
+    });
+
+    it('should provide accurate balance in error message', async () => {
+      try {
+        await accountService.withdraw(testUserId, { amount: 1500 });
+      } catch (error: any) {
+        expect(error.message).toContain('Available balance: RF 1,000');
       }
     });
   });

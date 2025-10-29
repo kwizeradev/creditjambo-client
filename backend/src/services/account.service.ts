@@ -1,13 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-import prisma from '../config/database';
+import prisma from '@/config/database';
 import {
   DepositInput,
+  formatCurrency,
   PaginatedTransactionResponse,
   toTransactionResponse,
   TransactionQuery,
-} from '../dtos/transaction.dto';
-import { AppError } from '../middlewares/error.middleware';
+  WithdrawInput,
+} from '@/dtos';
+import { AppError } from '@/middlewares/error.middleware';
 
 export class AccountService {
   async getAccountBalance(userId: string) {
@@ -125,6 +127,56 @@ export class AccountService {
       transaction: toTransactionResponse(result.transaction),
       balance: result.newBalance.toString(),
       message: 'Deposit successful',
+    };
+  }
+
+  async withdraw(userId: string, data: WithdrawInput) {
+    const account = await prisma.account.findUnique({
+      where: { userId },
+      select: { id: true, balance: true },
+    });
+
+    if (!account) {
+      throw new AppError(404, 'Account not found');
+    }
+
+    const withdrawAmount = new Decimal(data.amount);
+    if (account.balance.lessThan(withdrawAmount)) {
+      throw new AppError(
+        409,
+        `Insufficient funds. Available balance: ${formatCurrency(account.balance)}`,
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          accountId: account.id,
+          type: 'WITHDRAW',
+          amount: withdrawAmount,
+          description: data.description || 'Withdrawal',
+        },
+      });
+
+      const updatedAccount = await tx.account.update({
+        where: { id: account.id },
+        data: {
+          balance: {
+            decrement: withdrawAmount,
+          },
+        },
+      });
+
+      return {
+        transaction,
+        newBalance: updatedAccount.balance,
+      };
+    });
+
+    return {
+      transaction: toTransactionResponse(result.transaction),
+      balance: result.newBalance.toString(),
+      message: 'Withdrawal successful',
     };
   }
 }
