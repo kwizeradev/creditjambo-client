@@ -1,27 +1,29 @@
-import { describe, it, expect } from 'vitest';
-import { RegisterUserSchema, LoginUserSchema, toUserResponse } from '../../src/dtos/user.dto';
-import {
-  DepositSchema,
-  WithdrawSchema,
-  toTransactionResponse,
-  toTransactionWithAccountResponse,
-  TransactionQuerySchema,
-} from '../../src/dtos/transaction.dto';
+import { Decimal } from '@prisma/client/runtime/library';
+import { describe, expect, it } from 'vitest';
+import * as dtoExports from '../../src/dtos';
 import {
   AccountResponseSchema,
+  formatCurrency,
   toAccountResponse,
   toDecimal,
-  formatCurrency,
 } from '../../src/dtos/account.dto';
-import { PaginationQuerySchema, successResponse, errorResponse } from '../../src/dtos/common.dto';
+import { errorResponse, PaginationQuerySchema, successResponse } from '../../src/dtos/common.dto';
 import {
   DeviceResponseSchema,
   DeviceVerificationSchema,
   toDeviceResponse,
   toDeviceWithUserResponse,
 } from '../../src/dtos/device.dto';
-import type { Role, TransactionType, Account, Device, User } from '../../src/generated/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
+import { DeletePushTokenSchema, SavePushTokenSchema } from '../../src/dtos/push.dto';
+import {
+  DepositSchema,
+  toTransactionResponse,
+  toTransactionWithAccountResponse,
+  TransactionQuerySchema,
+  WithdrawSchema,
+} from '../../src/dtos/transaction.dto';
+import { LoginUserSchema, RegisterUserSchema, toUserResponse } from '../../src/dtos/user.dto';
+import type { Account, Device, Role, TransactionType, User } from '../../src/generated/prisma';
 
 describe('DTO Validation', () => {
   describe('User DTOs', () => {
@@ -636,6 +638,91 @@ describe('DTO Validation', () => {
         expect(response.id).toBe('dev-123');
         expect(response.user).toBeUndefined();
       });
+    });
+  });
+
+  describe('Push DTOs', () => {
+    describe('SavePushTokenSchema', () => {
+      it('should validate correct push token data', () => {
+        const validData = {
+          token: 'ExponentPushToken[test-token]',
+          platform: 'ios',
+        };
+
+        const result = SavePushTokenSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+
+      it('should reject empty token', () => {
+        const invalidData = {
+          token: '',
+          platform: 'ios',
+        };
+
+        const result = SavePushTokenSchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject invalid platform', () => {
+        const invalidData = {
+          token: 'ExponentPushToken[test-token]',
+          platform: 'invalid',
+        };
+
+        const result = SavePushTokenSchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0].message).toContain('Invalid option');
+        }
+      });
+
+      it('should accept valid platforms', () => {
+        const platforms = ['ios', 'android', 'web'];
+        platforms.forEach((platform) => {
+          const validData = {
+            token: 'ExponentPushToken[test-token]',
+            platform,
+          };
+
+          const result = SavePushTokenSchema.safeParse(validData);
+          expect(result.success).toBe(true);
+        });
+      });
+    });
+
+    describe('DeletePushTokenSchema', () => {
+      it('should validate correct delete token data', () => {
+        const validData = {
+          token: 'ExponentPushToken[test-token]',
+        };
+
+        const result = DeletePushTokenSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+      });
+
+      it('should reject empty token', () => {
+        const invalidData = {
+          token: '',
+        };
+
+        const result = DeletePushTokenSchema.safeParse(invalidData);
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  describe('DTO Index Exports', () => {
+    it('should export all expected DTOs', () => {
+      expect(dtoExports.RegisterUserSchema).toBeDefined();
+      expect(dtoExports.LoginUserSchema).toBeDefined();
+      expect(dtoExports.DepositSchema).toBeDefined();
+      expect(dtoExports.WithdrawSchema).toBeDefined();
+      expect(dtoExports.SavePushTokenSchema).toBeDefined();
+      expect(dtoExports.DeletePushTokenSchema).toBeDefined();
+      expect(dtoExports.PaginationQuerySchema).toBeDefined();
+      expect(dtoExports.DeviceResponseSchema).toBeDefined();
+      expect(dtoExports.successResponse).toBeDefined();
+      expect(dtoExports.errorResponse).toBeDefined();
     });
   });
 });

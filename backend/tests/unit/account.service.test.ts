@@ -1,58 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import prisma from '../../src/config/database';
 import accountService from '../../src/services/account.service';
+import { useTestDb } from '../utils/test-db-helper';
 
 describe('Account Service', () => {
   let testUserId: string;
   let testAccountId: string;
-  let createdUserIds: string[] = [];
-  let createdAccountIds: string[] = [];
-  let createdTransactionIds: string[] = [];
+  const db = useTestDb();
 
   beforeEach(async () => {
-    const user = await prisma.user.create({
-      data: {
-        name: 'Test User',
-        email: 'test@example.com',
-        passwordHash: 'hash',
-        salt: 'salt',
-        role: 'USER',
-      },
+    const user = await db.createUser({
+      name: 'Test User',
+      email: `test-account-${Date.now()}-${Math.random()}@example.com`,
     });
 
     testUserId = user.id;
-    createdUserIds.push(user.id);
 
-    const account = await prisma.account.create({
-      data: {
-        userId: testUserId,
-        balance: 1000,
-      },
+    const account = await db.createAccount({
+      userId: testUserId,
+      balance: 1000,
     });
     testAccountId = account.id;
-    createdAccountIds.push(account.id);
   });
 
   afterEach(async () => {
-    if (createdTransactionIds.length > 0) {
-      await prisma.transaction.deleteMany({
-        where: { id: { in: createdTransactionIds } },
-      });
-    }
-    if (createdAccountIds.length > 0) {
-      await prisma.account.deleteMany({
-        where: { id: { in: createdAccountIds } },
-      });
-    }
-    if (createdUserIds.length > 0) {
-      await prisma.user.deleteMany({
-        where: { id: { in: createdUserIds } },
-      });
-    }
-
-    createdUserIds = [];
-    createdAccountIds = [];
-    createdTransactionIds = [];
+    await db.cleanup();
   });
 
   describe('getAccountBalance', () => {
@@ -73,46 +45,36 @@ describe('Account Service', () => {
 
   describe('getTransactionHistory', () => {
     beforeEach(async () => {
-      const transactions = await Promise.all([
-        prisma.transaction.create({
-          data: {
-            accountId: testAccountId,
-            type: 'DEPOSIT',
-            amount: 500,
-            description: 'Deposit 1',
-            createdAt: new Date('2024-10-20'),
-          },
+      await Promise.all([
+        db.createTransaction({
+          accountId: testAccountId,
+          type: 'DEPOSIT',
+          amount: 500,
+          description: 'Deposit 1',
+          createdAt: new Date('2024-10-20'),
         }),
-        prisma.transaction.create({
-          data: {
-            accountId: testAccountId,
-            type: 'DEPOSIT',
-            amount: 200,
-            description: 'Deposit 2',
-            createdAt: new Date('2024-10-22'),
-          },
+        db.createTransaction({
+          accountId: testAccountId,
+          type: 'DEPOSIT',
+          amount: 200,
+          description: 'Deposit 2',
+          createdAt: new Date('2024-10-22'),
         }),
-        prisma.transaction.create({
-          data: {
-            accountId: testAccountId,
-            type: 'WITHDRAW',
-            amount: 150,
-            description: 'Withdraw 1',
-            createdAt: new Date('2024-10-24'),
-          },
+        db.createTransaction({
+          accountId: testAccountId,
+          type: 'WITHDRAW',
+          amount: 150,
+          description: 'Withdraw 1',
+          createdAt: new Date('2024-10-24'),
         }),
-        prisma.transaction.create({
-          data: {
-            accountId: testAccountId,
-            type: 'WITHDRAW',
-            amount: 100,
-            description: 'Withdraw 2',
-            createdAt: new Date('2024-10-26'),
-          },
+        db.createTransaction({
+          accountId: testAccountId,
+          type: 'WITHDRAW',
+          amount: 100,
+          description: 'Withdraw 2',
+          createdAt: new Date('2024-10-26'),
         }),
       ]);
-
-      createdTransactionIds.push(...transactions.map((t: { id: string }) => t.id));
     });
 
     it('should return paginated transactions', async () => {
@@ -187,24 +149,15 @@ describe('Account Service', () => {
     });
 
     it('should return empty array for user with no transactions', async () => {
-      const newUser = await prisma.user.create({
-        data: {
-          name: 'New User',
-          email: 'new@example.com',
-          passwordHash: 'hash',
-          salt: 'salt',
-          role: 'USER',
-        },
+      const newUser = await db.createUser({
+        name: 'New User',
+        email: 'new@example.com',
       });
-      createdUserIds.push(newUser.id);
 
-      const newAccount = await prisma.account.create({
-        data: {
-          userId: newUser.id,
-          balance: 0,
-        },
+      await db.createAccount({
+        userId: newUser.id,
+        balance: 0,
       });
-      createdAccountIds.push(newAccount.id);
 
       const result = await accountService.getTransactionHistory(newUser.id, {
         limit: 20,
