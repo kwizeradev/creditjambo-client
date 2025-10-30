@@ -56,3 +56,13 @@ export interface ApiResponse<T> {
   message?: string;
   data?: T;
 }
+
+export interface DepositInput {
+  amount: number;
+  description?: string;
+}
+
+export interface DepositResponse {
+  transaction: Transaction;
+  newBalance: string;
+}

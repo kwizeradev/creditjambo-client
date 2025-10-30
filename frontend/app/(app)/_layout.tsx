@@ -109,6 +109,12 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="deposit"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

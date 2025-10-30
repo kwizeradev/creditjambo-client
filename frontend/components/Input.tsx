@@ -200,6 +200,8 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 12,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
   input: {
     flex: 1,

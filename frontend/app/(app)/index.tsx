@@ -53,8 +53,8 @@ export default function Dashboard(): React.ReactElement {
 
   const handleDeposit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Coming Soon', 'Deposit feature will be available soon!');
-  }, []);
+    router.push('/(app)/deposit');
+  }, [router]);
 
   const handleWithdraw = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -73,14 +73,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   type: {
-    fontSize: FONT_SIZE.lg - 1,
+    fontSize: FONT_SIZE.md - 1,
     fontWeight: FONT_WEIGHT.semibold,
     color: COLORS.text,
     marginBottom: 4,
     letterSpacing: -0.2,
   },
   date: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.sm - 1,
     color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.regular,
   },
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   amount: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: -0.3,
   },

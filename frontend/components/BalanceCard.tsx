@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
   },
   balance: {
-    fontSize: ICON_SIZE.xl,
+    fontSize: ICON_SIZE.lg,
     fontWeight: FONT_WEIGHT.extrabold,
     color: '#ffffff',
     marginBottom: SPACING.md,

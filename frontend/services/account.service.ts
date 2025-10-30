@@ -1,5 +1,5 @@
 import api from './api';
-import type { AccountBalance, ApiResponse, PaginatedTransactions } from '@/types';
+import type { AccountBalance, ApiResponse, PaginatedTransactions, DepositInput, DepositResponse } from '@/types';
 
 export const accountService = {
   async getBalance(): Promise<AccountBalance> {
@@ -11,6 +11,11 @@ export const accountService = {
     const response = await api.get<ApiResponse<PaginatedTransactions>>(
       `/account/transactions?limit=${limit}&page=${page}`
     );
+    return response.data.data!;
+  },
+
+  async deposit(data: DepositInput): Promise<DepositResponse> {
+    const response = await api.post<ApiResponse<DepositResponse>>('/account/deposit', data);
     return response.data.data!;
   },
 };
