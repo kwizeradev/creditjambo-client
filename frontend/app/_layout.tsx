@@ -1,8 +1,8 @@
-import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "../contexts/AuthContext";
-import { useEffect } from "react";
-import * as Notifications from "expo-notifications";
+import { Stack } from 'expo-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '../contexts/AuthContext';
+import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -30,8 +30,8 @@ export default function RootLayout() {
 
   const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") {
-      console.log("Notification permissions not granted");
+    if (status !== 'granted') {
+      console.log('Notification permissions not granted');
     }
   };
 

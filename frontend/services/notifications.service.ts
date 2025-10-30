@@ -11,10 +11,9 @@ export async function showDepositNotification(
       data: { type: 'DEPOSIT', amount, balance },
       sound: true,
     },
-    trigger: null, 
+    trigger: null,
   });
 }
-
 
 export async function showWithdrawalNotification(
   amount: string,
@@ -31,8 +30,9 @@ export async function showWithdrawalNotification(
   });
 }
 
-
-export async function showLowBalanceNotification(balance: string): Promise<void> {
+export async function showLowBalanceNotification(
+  balance: string
+): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Low Balance Warning',
@@ -43,7 +43,6 @@ export async function showLowBalanceNotification(balance: string): Promise<void>
     trigger: null,
   });
 }
-
 
 export async function showDeviceVerifiedNotification(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
@@ -56,7 +55,6 @@ export async function showDeviceVerifiedNotification(): Promise<void> {
     trigger: null,
   });
 }
-
 
 export async function showInsufficientFundsNotification(
   attemptedAmount: string,
@@ -72,7 +70,6 @@ export async function showInsufficientFundsNotification(
     trigger: null,
   });
 }
-
 
 export async function requestPermissions(): Promise<boolean> {
   const { status } = await Notifications.requestPermissionsAsync();

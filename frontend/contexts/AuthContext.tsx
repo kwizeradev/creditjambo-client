@@ -1,16 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import api, { handleApiError } from '../services/api';
+import api, { handleApiError } from '@/services/api';
 import {
   saveTokens,
   clearTokens,
   getAccessToken,
   saveUser,
   getUser,
-} from '../services/storage.service';
+} from '@/services/storage.service';
 
-import { getDeviceId, getDeviceInfo } from '../services/device.service';
-import { User, LoginResponse } from '../types';
+import { getDeviceId, getDeviceInfo } from '@/services/device.service';
+import { User, LoginResponse } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadUser();
   }, []);
-
 
   useEffect(() => {
     if (isLoading) return;
@@ -77,12 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = response.data.data as LoginResponse;
 
-      
       if (data.devicePending) {
         return data;
       }
 
-      
       if (data.tokens && data.user) {
         await saveTokens(data.tokens.accessToken, data.tokens.refreshToken);
         await saveUser(data.user);
@@ -111,9 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         deviceId,
         deviceInfo,
       });
-
-      
-      
     } catch (error) {
       throw new Error(handleApiError(error));
     }
@@ -121,12 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      
       await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      
       await clearTokens();
       setUser(null);
       router.replace('/auth/sign-in');

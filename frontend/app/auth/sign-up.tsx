@@ -1,11 +1,254 @@
-import { View, Text } from 'react-native';
-import { globalStyles } from '../../constants/styles';
+import React from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Link, useRouter } from 'expo-router';
+
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import PasswordStrength from '@/components/PasswordStrength';
+import { COLORS } from '@/constants/configs';
+import { useAuth } from '@/contexts/AuthContext';
+import { useForm } from '@/lib/hooks/useForm';
+import { usePasswordStrength } from '@/lib/hooks/usePasswordStrength';
+import { showErrorAlert } from '@/lib/utils/errors';
+import { signUpSchema } from '@/lib/validations/auth';
+import type { SignUpForm } from '@/types/auth';
+
+const INITIAL_VALUES: SignUpForm = {
+  name: '',
+  email: '',
+  password: '',
+};
 
 export default function SignUp() {
+  const { register } = useAuth();
+  const router = useRouter();
+
+  const handleSubmit = async (values: SignUpForm) => {
+    try {
+      await register(values.name, values.email, values.password);
+      router.replace('/device-pending');
+    } catch (error) {
+      showErrorAlert(
+        'Sign Up Failed',
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      );
+      throw error; // Re-throw to keep form in loading state if needed
+    }
+  };
+
+  const {
+    values,
+    errors,
+    loading,
+    isValid,
+    setValue,
+    validateField,
+    handleSubmit: onSubmit,
+  } = useForm({
+    initialValues: INITIAL_VALUES,
+    validationSchema: signUpSchema,
+    onSubmit: handleSubmit,
+  });
+
+  const passwordStrength = usePasswordStrength(values.password);
+
+  const handleFieldChange = (field: keyof SignUpForm, value: string) => {
+    setValue(field, value);
+  };
+
+  const handleFieldBlur = (field: keyof SignUpForm) => {
+    validateField(field);
+    // Error is automatically set by the useForm hook
+  };
+
   return (
-    <View style={globalStyles.centered}>
-      <Text style={globalStyles.title}>Sign Up</Text>
-      <Text>Coming next...</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Text style={styles.appTitle}>Credit Jambo</Text>
+              <Text style={styles.appSubtitle}>Savings Management</Text>
+            </View>
+          </View>
+
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>
+                Join Credit Jambo to start managing your savings
+              </Text>
+            </View>
+
+            <View style={styles.form}>
+              <Input
+                label="Full Name"
+                placeholder="Enter your full name"
+                value={values.name}
+                onChangeText={value => handleFieldChange('name', value)}
+                onBlur={() => handleFieldBlur('name')}
+                error={errors.name}
+                icon="person"
+                autoCapitalize="words"
+                autoComplete="name"
+                required
+              />
+
+              <Input
+                label="Email Address"
+                placeholder="Enter your email"
+                value={values.email}
+                onChangeText={value => handleFieldChange('email', value)}
+                onBlur={() => handleFieldBlur('email')}
+                error={errors.email}
+                icon="mail"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                required
+              />
+
+              <Input
+                label="Password"
+                placeholder="Create a strong password"
+                value={values.password}
+                onChangeText={value => handleFieldChange('password', value)}
+                onBlur={() => handleFieldBlur('password')}
+                error={errors.password}
+                icon="lock-closed"
+                isPassword
+                autoComplete="new-password"
+                required
+              />
+
+              {values.password.length > 0 && (
+                <PasswordStrength strength={passwordStrength} />
+              )}
+
+              <Button
+                title="Create Account"
+                onPress={onSubmit}
+                loading={loading}
+                disabled={!isValid || loading}
+                fullWidth
+                style={styles.submitButton}
+              />
+
+              <View style={styles.signInLink}>
+                <Text style={styles.signInText}>Already have an account? </Text>
+                <Link href="/auth/sign-in" asChild>
+                  <TouchableOpacity accessibilityRole="button">
+                    <Text style={styles.signInLinkText}>Sign In</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  header: {
+    backgroundColor: COLORS.primary,
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  appTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  appSubtitle: {
+    fontSize: 16,
+    color: '#ffffff',
+    opacity: 0.9,
+  },
+  formCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    marginTop: -20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  formHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  form: {
+    flex: 1,
+  },
+  submitButton: {
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  signInLink: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signInText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  signInLinkText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+});

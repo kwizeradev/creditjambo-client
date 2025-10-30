@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { globalStyles } from '../../constants/styles';
+import { globalStyles } from '@/constants/styles';
 
 export default function DevicePending() {
   return (

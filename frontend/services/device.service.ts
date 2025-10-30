@@ -1,7 +1,7 @@
-import * as Device from "expo-device";
-import * as SecureStore from "expo-secure-store";
+import * as Device from 'expo-device';
+import * as SecureStore from 'expo-secure-store';
 
-const DEVICE_ID_KEY = "cjsm_device_id";
+const DEVICE_ID_KEY = 'cjsm_device_id';
 
 export async function getDeviceId(): Promise<string> {
   try {
@@ -14,23 +14,23 @@ export async function getDeviceId(): Promise<string> {
 
     return deviceId;
   } catch (error) {
-    console.error("Error getting device ID:", error);
+    console.error('Error getting device ID:', error);
     return generateUUID();
   }
 }
 
 export async function getDeviceInfo(): Promise<string> {
-  const modelName = Device.modelName || "Unknown Device";
-  const osName = Device.osName || "Unknown OS";
-  const osVersion = Device.osVersion || "";
+  const modelName = Device.modelName || 'Unknown Device';
+  const osName = Device.osName || 'Unknown OS';
+  const osVersion = Device.osVersion || '';
 
   return `${modelName} (${osName} ${osVersion})`;
 }
 
 function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }

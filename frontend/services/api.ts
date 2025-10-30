@@ -1,31 +1,31 @@
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { API_URL } from "../constants/configs";
-import { ApiError } from "../types";
-import { clearTokens, getAccessToken } from "./storage.service";
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import { API_URL } from '../constants/configs';
+import { ApiError } from '../types';
+import { clearTokens, getAccessToken } from './storage.service';
 
 const api = axios.create({
   baseURL: API_URL,
   timeout: 30000,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
 api.interceptors.request.use(
-  async (config) => {
+  async config => {
     const token = await getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  response => response,
   async (error: AxiosError<ApiError>) => {
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
@@ -57,7 +57,7 @@ export function handleApiError(error: unknown): string {
     }
 
     if (apiError?.errors && apiError.errors.length > 0) {
-      return apiError.errors.map((e) => e.message).join(", ");
+      return apiError.errors.map(e => e.message).join(', ');
     }
 
     if (error.message) {
@@ -65,7 +65,7 @@ export function handleApiError(error: unknown): string {
     }
   }
 
-  return "An unexpected error occurred";
+  return 'An unexpected error occurred';
 }
 
 export default api;

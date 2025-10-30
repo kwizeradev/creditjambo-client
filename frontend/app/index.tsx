@@ -1,9 +1,15 @@
 import { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { getAccessToken } from '../services/storage.service';
-import { showDepositNotification } from '../services/notifications.service';
-import { COLORS } from '../constants/configs';
+import { getAccessToken } from '@/services/storage.service';
+import { showDepositNotification } from '@/services/notifications.service';
+import { COLORS } from '@/constants/configs';
 
 export default function Index() {
   const router = useRouter();
@@ -15,18 +21,18 @@ export default function Index() {
   const checkAuth = async () => {
     try {
       const token = await getAccessToken();
-      
+
       // Wait a bit for better UX
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       if (token) {
         router.replace('/(app)');
       } else {
-        router.replace('/auth/sign-in');
+        router.replace('/auth/sign-up');
       }
     } catch (error) {
       console.error('Error checking auth:', error);
-      router.replace('/auth/sign-in');
+      router.replace('/auth/sign-up');
     }
   };
 
@@ -39,12 +45,9 @@ export default function Index() {
       <Text style={styles.title}>Credit Jambo</Text>
       <Text style={styles.subtitle}>Savings Management</Text>
       <ActivityIndicator size="large" color="#ffffff" style={styles.loader} />
-      
+
       {/* Test button - remove later */}
-      <TouchableOpacity 
-        style={styles.testButton} 
-        onPress={testNotification}
-      >
+      <TouchableOpacity style={styles.testButton} onPress={testNotification}>
         <Text style={styles.testButtonText}>Test Notification</Text>
       </TouchableOpacity>
     </View>
