@@ -1,140 +1,125 @@
-import React, { useCallback } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, Alert, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { COLORS } from '@/lib/constants';
+import { SPACING, COLORS } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
-import Card from '@/components/Card';
+import { useDashboardData } from '@/lib/hooks/useDashboardData';
+import GradientBackground from '@/components/GradientBackground';
+import BalanceCard from '@/components/BalanceCard';
+import LowBalanceAlert from '@/components/LowBalanceAlert';
+import {
+  DashboardHeader,
+  ActionButtons,
+  TransactionsList,
+  TransactionDetailModal,
+} from '@/components/dashboard';
+import type { Transaction } from '@/types';
 
 export default function Dashboard(): React.ReactElement {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+  const {
+    balance: balanceData,
+    transactions: transactionsData,
+    isLoadingBalance,
+    isLoadingTransactions,
+    refetchBalance,
+    refetchTransactions,
+    isRefreshing,
+  } = useDashboardData();
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refetchBalance(), refetchTransactions()]);
+  }, [refetchBalance, refetchTransactions]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            logout();
-            router.replace('/auth/sign-in');
-          },
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          logout();
+          router.replace('/auth/sign-in');
         },
-      ]
-    );
+      },
+    ]);
   }, [logout, router]);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
+  const handleDeposit = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Coming Soon', 'Deposit feature will be available soon!');
+  }, []);
+
+  const handleWithdraw = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Coming Soon', 'Withdraw feature will be available soon!');
+  }, []);
+
+  const handleViewAllTransactions = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Coming Soon', 'Full transaction history will be available soon!');
+  }, []);
+
+  const handleTransactionPress = useCallback((transaction: Transaction) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedTransaction(transaction);
+  }, []);
+
+  const closeTransactionModal = useCallback(() => {
+    setSelectedTransaction(null);
+  }, []);
+
+  const balance = balanceData?.balance || '0';
+  const transactions = transactionsData?.transactions || [];
+  const userName = user?.name || 'User';
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[COLORS.background, COLORS.surface]}
-        style={styles.gradient}
-      >
+    <GradientBackground style={styles.container}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>{user?.name || 'User'}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={24}
-                color={COLORS.error}
-              />
-            </TouchableOpacity>
-          </View>
+          <DashboardHeader userName={userName} onLogout={handleLogout} />
 
-          {/* Account Card */}
-          <Card style={styles.accountCard} variant="elevated">
-            <View style={styles.cardHeader}>
-              <View style={styles.iconContainer}>
-                <LinearGradient
-                  colors={[`${COLORS.primary}20`, `${COLORS.primary}10`]}
-                  style={styles.iconGradient}
-                >
-                  <Ionicons
-                    name="person-circle"
-                    size={32}
-                    color={COLORS.primary}
-                  />
-                </LinearGradient>
-              </View>
-              <View style={styles.accountInfo}>
-                <Text style={styles.accountLabel}>Account</Text>
-                <Text style={styles.accountEmail}>{user?.email}</Text>
-              </View>
-            </View>
+          <BalanceCard
+            balance={balance}
+            isLoading={isLoadingBalance}
+            lastUpdated={balanceData?.lastUpdated}
+          />
 
-            <View style={styles.divider} />
+          <LowBalanceAlert balance={balance} />
 
-            <View style={styles.statusRow}>
-              <View style={styles.statusItem}>
-                <Ionicons
-                  name="shield-checkmark"
-                  size={20}
-                  color={COLORS.success}
-                />
-                <Text style={styles.statusText}>Verified</Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={20}
-                  color={COLORS.success}
-                />
-                <Text style={styles.statusText}>Active</Text>
-              </View>
-            </View>
-          </Card>
+          <ActionButtons onDeposit={handleDeposit} onWithdraw={handleWithdraw} />
 
-          {/* Welcome Message */}
-          <Card style={styles.welcomeCard}>
-            <View style={styles.welcomeContent}>
-              <Ionicons
-                name="information-circle"
-                size={24}
-                color={COLORS.primary}
-              />
-              <Text style={styles.welcomeText}>
-                Welcome to Credit Jambo! Your dashboard features are coming soon.
-              </Text>
-            </View>
-          </Card>
+          <TransactionsList
+            transactions={transactions}
+            isLoading={isLoadingTransactions}
+            onTransactionPress={handleTransactionPress}
+            onViewAll={handleViewAllTransactions}
+          />
         </ScrollView>
-      </LinearGradient>
-    </View>
+
+        <TransactionDetailModal
+          transaction={selectedTransaction}
+          visible={!!selectedTransaction}
+          onClose={closeTransactionModal}
+        />
+      </GradientBackground>
   );
 }
 
@@ -142,106 +127,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: SPACING.xxl,
     paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 32,
-  },
-  greeting: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  userName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  logoutButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${COLORS.error}10`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  accountCard: {
-    marginBottom: 20,
-    padding: 20,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconContainer: {
-    marginRight: 16,
-  },
-  iconGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  accountInfo: {
-    flex: 1,
-  },
-  accountLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  accountEmail: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: `${COLORS.text}10`,
-    marginBottom: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    gap: 24,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  welcomeCard: {
-    padding: 16,
-    backgroundColor: `${COLORS.primary}08`,
-    borderWidth: 1,
-    borderColor: `${COLORS.primary}20`,
-  },
-  welcomeContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  welcomeText: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
+    paddingBottom: 100,
   },
 });
