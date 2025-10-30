@@ -122,6 +122,9 @@ export class AuthService {
         return { user, device, account };
       } catch (error) {
         console.error('Registration transaction failed:', error);
+        if (error instanceof AppError) {
+          throw error;
+        }
         throw new AppError(500, 'Registration failed. Please try again.');
       }
     });
@@ -145,11 +148,25 @@ export class AuthService {
   }
 
   private async createDevice(tx: TransactionClient, userId: string, data: RegisterUserInput) {
+    const deviceId = data.deviceId || `web-${Date.now()}`;
+    const deviceInfo = data.deviceInfo || 'Unknown device';
+    
+    const existingDevice = await tx.device.findUnique({
+      where: { deviceId },
+    });
+    
+    if (existingDevice) {
+      if (existingDevice.userId !== userId) {
+        throw new AppError(409, 'Device is already registered to a different user');
+      }
+      return existingDevice;
+    }
+    
     return tx.device.create({
       data: {
         userId,
-        deviceId: data.deviceId || `web-${Date.now()}`,
-        deviceInfo: data.deviceInfo || 'Unknown device',
+        deviceId,
+        deviceInfo,
         verified: false,
       },
     });
