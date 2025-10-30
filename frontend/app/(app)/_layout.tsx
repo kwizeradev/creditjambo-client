@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { getDevicePendingState } from '@/services/storage.service';
-import { COLORS } from '@/lib/constants';
 import { Redirect, Tabs } from 'expo-router';
 
 interface DeviceState {
@@ -14,6 +14,7 @@ interface DeviceState {
 }
 
 export default function AppLayout() {
+  const { theme } = useTheme();
   const { user, isLoading } = useAuth();
   const [deviceState, setDeviceState] = useState<DeviceState | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -48,17 +49,17 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
           borderTopWidth: 1,
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 10,
           paddingTop: 10,
           height: Platform.OS === 'ios' ? 65 + insets.bottom : 65,
           elevation: 8,
-          shadowColor: '#000',
+          shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 8,
@@ -92,21 +93,18 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="cards"
-        options={{
-          title: 'Cards',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'card' : 'card-outline'} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="cards"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

@@ -15,8 +15,8 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '@/lib/constants';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface InputProps extends Omit<TextInputProps, 'secureTextEntry'> {
   label?: string;
@@ -43,6 +43,7 @@ const Input = forwardRef<TextInput, InputProps>(
     },
     ref
   ) => {
+    const { theme } = useTheme();
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<TextInput>(null);
@@ -75,22 +76,40 @@ const Input = forwardRef<TextInput, InputProps>(
 
     const getInputContainerStyle = () => [
       styles.inputContainer,
-      isFocused && styles.inputFocused,
-      error && styles.inputError,
+      { 
+        backgroundColor: theme.colors.surface,
+        borderColor: theme.colors.border,
+      },
+      isFocused && {
+        borderColor: theme.colors.primary,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 3,
+      },
+      error && {
+        borderColor: theme.colors.error,
+        shadowColor: theme.colors.error,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      },
     ];
 
     const getIconColor = () => {
-      if (error) return COLORS.error;
-      if (isFocused) return COLORS.primary;
-      return COLORS.textSecondary;
+      if (error) return theme.colors.error;
+      if (isFocused) return theme.colors.primary;
+      return theme.colors.textSecondary;
     };
 
     return (
       <View style={styles.container}>
         {label && (
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: theme.colors.text }]}>
             {label}
-            {required && <Text style={styles.required}> *</Text>}
+            {required && <Text style={{ color: theme.colors.error }}> *</Text>}
           </Text>
         )}
 
@@ -109,9 +128,9 @@ const Input = forwardRef<TextInput, InputProps>(
 
           <TextInput
             ref={inputRef}
-            style={[styles.input, style]}
+            style={[styles.input, { color: theme.colors.text }, style]}
             secureTextEntry={isPassword && !isPasswordVisible}
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor={theme.colors.textSecondary}
             onFocus={handleFocus}
             onBlur={handleBlur}
             accessibilityLabel={label}
@@ -134,20 +153,20 @@ const Input = forwardRef<TextInput, InputProps>(
               <Ionicons
                 name={isPasswordVisible ? 'eye' : 'eye-off'}
                 size={20}
-                color={COLORS.textSecondary}
+                color={theme.colors.textSecondary}
               />
             </Pressable>
           )}
         </Pressable>
 
         {error && (
-          <Text style={styles.errorText} accessibilityLiveRegion="polite">
+          <Text style={[styles.errorText, { color: theme.colors.error }]} accessibilityLiveRegion="polite">
             {error}
           </Text>
         )}
 
         {helperText && !error && (
-          <Text style={styles.helperText}>{helperText}</Text>
+          <Text style={[styles.helperText, { color: theme.colors.textSecondary }]}>{helperText}</Text>
         )}
       </View>
     );
@@ -165,38 +184,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
     marginBottom: 8,
-  },
-  required: {
-    color: COLORS.error,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     minHeight: 52,
-  },
-  inputFocused: {
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  inputError: {
-    borderColor: COLORS.error,
-    shadowColor: COLORS.error,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   icon: {
     marginRight: 12,
@@ -206,7 +203,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.text,
     padding: 0,
     paddingVertical: 2,
     textAlignVertical: 'center',
@@ -219,13 +215,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    color: COLORS.error,
     marginTop: 6,
     marginLeft: 4,
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
     marginTop: 6,
     marginLeft: 4,
   },

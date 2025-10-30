@@ -13,7 +13,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '@/lib/constants';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { formatCurrency } from '@/lib/utils/date';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
@@ -31,6 +32,7 @@ const MAX_AMOUNT = 1000000;
 const MIN_AMOUNT = 100;
 
 export default function DepositScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
@@ -153,10 +155,10 @@ export default function DepositScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.header}>
-          <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+          <Pressable onPress={handleBack} style={[styles.backButton, { backgroundColor: theme.colors.surface }]} hitSlop={12}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>Deposit Money</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Deposit Money</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -166,13 +168,13 @@ export default function DepositScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Current Balance</Text>
-            <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
+          <View style={[styles.balanceCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Current Balance</Text>
+            <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formatCurrency(currentBalance)}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Enter Amount</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Enter Amount</Text>
             <AmountInput
               value={amount}
               onChangeText={handleAmountChange}
@@ -182,7 +184,7 @@ export default function DepositScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Select</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Quick Select</Text>
             <View style={styles.quickAmountsGrid}>
               {QUICK_AMOUNTS.map((quickAmount) => (
                 <View key={quickAmount} style={styles.quickAmountItem}>
@@ -210,10 +212,14 @@ export default function DepositScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
           <Pressable
             onPress={handleContinue}
-            style={[styles.depositButton, !isValidAmount && styles.depositButtonDisabled]}
+            style={[
+              styles.depositButton, 
+              { backgroundColor: isValidAmount ? theme.colors.primary : theme.colors.disabled },
+              !isValidAmount && styles.depositButtonDisabled
+            ]}
             disabled={!isValidAmount}
           >
             <Text style={styles.depositButtonText}>
@@ -262,7 +268,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.round,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -274,7 +279,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: FONT_WEIGHT.bold,
-    color: COLORS.text,
   },
   headerSpacer: {
     width: 40,
@@ -287,16 +291,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   balanceCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
   },
   balanceLabel: {
     fontSize: FONT_SIZE.xs + 1,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.semibold,
     marginBottom: SPACING.xs,
     textTransform: 'uppercase',
@@ -305,7 +306,6 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: FONT_SIZE.xxl,
     fontWeight: FONT_WEIGHT.extrabold,
-    color: COLORS.text,
     letterSpacing: -0.5,
   },
   section: {
@@ -314,7 +314,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZE.sm + 1,
     fontWeight: FONT_WEIGHT.semibold,
-    color: COLORS.textSecondary,
     marginBottom: SPACING.sm + 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -338,9 +337,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: SPACING.lg,
-    backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
@@ -348,7 +345,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   depositButton: {
-    backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
@@ -356,14 +352,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 54,
-    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
   },
   depositButtonDisabled: {
-    backgroundColor: COLORS.disabled,
     shadowOpacity: 0,
     elevation: 0,
   },

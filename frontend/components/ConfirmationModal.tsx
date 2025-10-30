@@ -8,7 +8,8 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '@/lib/constants';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCurrency } from '@/lib/utils/date';
 
@@ -39,6 +40,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   variant = 'deposit',
   showWarning = false,
 }) => {
+  const { theme } = useTheme();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -77,7 +79,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     ? parseFloat(currentBalance) + parseFloat(amount || '0')
     : parseFloat(currentBalance) - parseFloat(amount || '0');
   
-  const accentColor = variant === 'withdraw' ? COLORS.error : COLORS.primary;
+  const accentColor = variant === 'withdraw' ? theme.colors.error : theme.colors.primary;
   const iconName = variant === 'withdraw' ? 'alert-circle' : 'checkmark-circle';
 
   return (
@@ -97,48 +99,49 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           style={[
             styles.modal,
             {
+              backgroundColor: theme.colors.surface,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <View style={styles.handle} />
+          <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
 
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Ionicons name={iconName} size={48} color={accentColor} />
             </View>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
             {showWarning && (
-              <View style={styles.warningBanner}>
-                <Ionicons name="warning" size={16} color={COLORS.warning} />
-                <Text style={styles.warningText}>Large withdrawal - please confirm</Text>
+              <View style={[styles.warningBanner, { backgroundColor: `${theme.colors.warning}10` }]}>
+                <Ionicons name="warning" size={16} color={theme.colors.warning} />
+                <Text style={[styles.warningText, { color: theme.colors.warning }]}>Large withdrawal - please confirm</Text>
               </View>
             )}
           </View>
 
           <View style={styles.content}>
             <View style={styles.amountSection}>
-              <Text style={styles.label}>{variant === 'withdraw' ? 'Withdrawal Amount' : 'Deposit Amount'}</Text>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{variant === 'withdraw' ? 'Withdrawal Amount' : 'Deposit Amount'}</Text>
               <Text style={[styles.amount, { color: accentColor }]}>{formatCurrency(amount || '0')}</Text>
             </View>
 
             {description && (
-              <View style={styles.descriptionSection}>
-                <Text style={styles.label}>Description</Text>
-                <Text style={styles.description}>{description}</Text>
+              <View style={[styles.descriptionSection, { backgroundColor: theme.colors.background }]}>
+                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Description</Text>
+                <Text style={[styles.description, { color: theme.colors.text }]}>{description}</Text>
               </View>
             )}
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
             <View style={styles.balanceSection}>
               <View style={styles.balanceRow}>
-                <Text style={styles.balanceLabel}>Current Balance</Text>
-                <Text style={styles.balanceValue}>{formatCurrency(currentBalance)}</Text>
+                <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Current Balance</Text>
+                <Text style={[styles.balanceValue, { color: theme.colors.text }]}>{formatCurrency(currentBalance)}</Text>
               </View>
               <View style={styles.balanceRow}>
-                <Text style={styles.balanceLabel}>New Balance</Text>
-                <Text style={[styles.balanceValue, styles.newBalance]}>
+                <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>New Balance</Text>
+                <Text style={[styles.balanceValue, styles.newBalance, { color: theme.colors.primary }]}>
                   {formatCurrency(newBalance)}
                 </Text>
               </View>
@@ -148,15 +151,29 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <View style={styles.actions}>
             <Pressable
               onPress={onCancel}
-              style={[styles.button, styles.cancelButton]}
+              style={[
+                styles.button, 
+                styles.cancelButton, 
+                { 
+                  backgroundColor: theme.colors.background, 
+                  borderColor: theme.colors.border 
+                }
+              ]}
               disabled={isLoading}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.text }]}>Cancel</Text>
             </Pressable>
 
             <Pressable
               onPress={onConfirm}
-              style={[styles.button, styles.confirmButton, variant === 'withdraw' && styles.confirmButtonWithdraw]}
+              style={[
+                styles.button, 
+                styles.confirmButton, 
+                { 
+                  backgroundColor: variant === 'withdraw' ? theme.colors.error : theme.colors.primary,
+                  shadowColor: variant === 'withdraw' ? theme.colors.error : theme.colors.primary
+                }
+              ]}
               disabled={isLoading}
             >
               <Text style={styles.confirmButtonText}>
@@ -182,7 +199,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modal: {
-    backgroundColor: COLORS.surface,
     borderTopLeftRadius: BORDER_RADIUS.xxl,
     borderTopRightRadius: BORDER_RADIUS.xxl,
     paddingBottom: SPACING.xxxl,
@@ -191,7 +207,6 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: COLORS.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: SPACING.md,
@@ -208,7 +223,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZE.xxl,
     fontWeight: FONT_WEIGHT.bold,
-    color: COLORS.text,
     textAlign: 'center',
   },
   content: {
@@ -221,30 +235,25 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.medium,
     marginBottom: SPACING.xs,
   },
   amount: {
     fontSize: FONT_SIZE.xxxl + 8,
     fontWeight: FONT_WEIGHT.extrabold,
-    color: COLORS.primary,
     letterSpacing: -1,
   },
   descriptionSection: {
-    backgroundColor: COLORS.background,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     marginBottom: SPACING.lg,
   },
   description: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.text,
     lineHeight: 22,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
     marginVertical: SPACING.lg,
   },
   balanceSection: {
@@ -257,16 +266,13 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.medium,
   },
   balanceValue: {
     fontSize: FONT_SIZE.lg,
-    color: COLORS.text,
     fontWeight: FONT_WEIGHT.semibold,
   },
   newBalance: {
-    color: COLORS.primary,
     fontWeight: FONT_WEIGHT.bold,
   },
   actions: {
@@ -283,13 +289,9 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   cancelButton: {
-    backgroundColor: COLORS.background,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
   },
   confirmButton: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -298,21 +300,15 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.semibold,
-    color: COLORS.text,
   },
   confirmButtonText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
     color: '#ffffff',
   },
-  confirmButtonWithdraw: {
-    backgroundColor: COLORS.error,
-    shadowColor: COLORS.error,
-  },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.sm,
@@ -321,7 +317,6 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.warning,
     fontWeight: FONT_WEIGHT.semibold,
   },
 });

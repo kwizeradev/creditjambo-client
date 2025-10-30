@@ -33,8 +33,8 @@ export function useDashboardData(): UseDashboardDataReturn {
     refetch: refetchTransactions,
     isRefetching: isRefetchingTransactions,
   } = useQuery({
-    queryKey: ['transactions', QUERY_CONFIG.TRANSACTION_LIMIT],
-    queryFn: () => accountService.getTransactions(QUERY_CONFIG.TRANSACTION_LIMIT, 1),
+    queryKey: ['transactions', 5],
+    queryFn: () => accountService.getTransactions(5, 1),
   });
 
   const isRefreshing = isRefetchingBalance || isRefetchingTransactions;

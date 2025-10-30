@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import {
   getAccessToken,
   getDevicePendingState,
@@ -53,6 +53,7 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 export default function Index() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [status, setStatus] = useState('Initializing...');
   const [isReady, setIsReady] = useState(false);
@@ -150,7 +151,7 @@ export default function Index() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.primary }]}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <View style={styles.logoContainer}>
           <Ionicons name="wallet" size={64} color="#ffffff" />
@@ -171,7 +172,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

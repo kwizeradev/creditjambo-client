@@ -13,7 +13,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, LOW_BALANCE_THRESHOLD } from '@/lib/constants';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, LOW_BALANCE_THRESHOLD } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { formatCurrency } from '@/lib/utils/date';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
@@ -35,6 +36,7 @@ const MIN_AMOUNT = 100;
 const LARGE_WITHDRAWAL_THRESHOLD = 0.5;
 
 export default function WithdrawScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
@@ -186,10 +188,10 @@ export default function WithdrawScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.header}>
-          <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+          <Pressable onPress={handleBack} style={[styles.backButton, { backgroundColor: theme.colors.surface }]} hitSlop={12}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>Withdraw Money</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Withdraw Money</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -199,14 +201,14 @@ export default function WithdrawScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Available Balance</Text>
-            <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
-            <Text style={styles.balanceHint}>Maximum withdrawal limit</Text>
+          <View style={[styles.balanceCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Available Balance</Text>
+            <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formatCurrency(currentBalance)}</Text>
+            <Text style={[styles.balanceHint, { color: theme.colors.textSecondary }]}>Maximum withdrawal limit</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Enter Amount</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Enter Amount</Text>
             <AmountInput
               value={amount}
               onChangeText={handleAmountChange}
@@ -218,7 +220,7 @@ export default function WithdrawScreen() {
 
           {quickAmounts.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Quick Select</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Quick Select</Text>
               <View style={styles.quickAmountsGrid}>
                 {quickAmounts.map((quickAmount) => (
                   <View key={quickAmount} style={styles.quickAmountItem}>
@@ -235,9 +237,15 @@ export default function WithdrawScreen() {
 
           {currentBalance >= MIN_AMOUNT && (
             <View style={styles.section}>
-              <Pressable onPress={handleWithdrawAll} style={styles.withdrawAllButton}>
-                <Ionicons name="wallet-outline" size={20} color={COLORS.error} />
-                <Text style={styles.withdrawAllText}>Withdraw All ({formatCurrency(currentBalance)})</Text>
+              <Pressable onPress={handleWithdrawAll} style={[
+                styles.withdrawAllButton, 
+                { 
+                  backgroundColor: `${theme.colors.error}10`, 
+                  borderColor: `${theme.colors.error}20` 
+                }
+              ]}>
+                <Ionicons name="wallet-outline" size={20} color={theme.colors.error} />
+                <Text style={[styles.withdrawAllText, { color: theme.colors.error }]}>Withdraw All ({formatCurrency(currentBalance)})</Text>
               </Pressable>
             </View>
           )}
@@ -256,10 +264,14 @@ export default function WithdrawScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
           <Pressable
             onPress={handleContinue}
-            style={[styles.withdrawButton, !isValidAmount && styles.withdrawButtonDisabled]}
+            style={[
+              styles.withdrawButton, 
+              { backgroundColor: isValidAmount ? theme.colors.error : theme.colors.disabled },
+              !isValidAmount && styles.withdrawButtonDisabled
+            ]}
             disabled={!isValidAmount}
           >
             <Text style={styles.withdrawButtonText}>
@@ -310,7 +322,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.round,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -322,7 +333,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: FONT_WEIGHT.bold,
-    color: COLORS.text,
   },
   headerSpacer: {
     width: 40,
@@ -335,16 +345,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   balanceCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
   },
   balanceLabel: {
     fontSize: FONT_SIZE.xs + 1,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.semibold,
     marginBottom: SPACING.xs,
     textTransform: 'uppercase',
@@ -353,13 +360,11 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: FONT_SIZE.xxl,
     fontWeight: FONT_WEIGHT.extrabold,
-    color: COLORS.text,
     letterSpacing: -0.5,
     marginBottom: SPACING.xs,
   },
   balanceHint: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.regular,
   },
   section: {
@@ -368,7 +373,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZE.sm + 1,
     fontWeight: FONT_WEIGHT.semibold,
-    color: COLORS.textSecondary,
     marginBottom: SPACING.sm + 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -385,18 +389,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
     borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
     gap: SPACING.sm,
   },
   withdrawAllText: {
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.semibold,
-    color: COLORS.error,
   },
   descriptionInput: {
     minHeight: 72,
@@ -409,9 +410,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: SPACING.lg,
-    backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
@@ -419,7 +418,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   withdrawButton: {
-    backgroundColor: COLORS.error,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
@@ -427,14 +425,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 54,
-    shadowColor: COLORS.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
   },
   withdrawButtonDisabled: {
-    backgroundColor: COLORS.disabled,
     shadowOpacity: 0,
     elevation: 0,
   },

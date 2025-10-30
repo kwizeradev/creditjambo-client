@@ -11,8 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '@/lib/constants';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { formatCurrency } from '@/lib/utils/date';
 import type { Transaction } from '@/types';
 
@@ -29,6 +29,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { theme } = useTheme();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -66,10 +67,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   if (!transaction) return null;
 
   const isDeposit = transaction.type === 'DEPOSIT';
-  const amountColor = isDeposit ? COLORS.success : COLORS.error;
+  const amountColor = isDeposit ? theme.colors.success : theme.colors.error;
   const amountPrefix = isDeposit ? '+' : '-';
   const iconName = isDeposit ? 'arrow-down-circle' : 'arrow-up-circle';
-  const iconBgColor = isDeposit ? `${COLORS.success}15` : `${COLORS.error}15`;
+  const iconBgColor = isDeposit ? `${theme.colors.success}15` : `${theme.colors.error}15`;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -82,26 +83,31 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           style={[
             styles.bottomSheet,
             {
+              backgroundColor: theme.colors.surface,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
           </View>
 
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
             <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
               <Ionicons name={iconName} size={28} color={amountColor} />
             </View>
-            <Text style={styles.title}>Transaction Details</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
-              <Ionicons name="close" size={22} color={COLORS.textSecondary} />
+            <Text style={[styles.title, { color: theme.colors.text }]}>Transaction Details</Text>
+            <TouchableOpacity 
+              onPress={onClose} 
+              style={[styles.closeButton, { backgroundColor: `${theme.colors.textSecondary}${OPACITY.light}` }]} 
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={22} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>Amount</Text>
+          <View style={[styles.amountSection, { borderBottomColor: theme.colors.border }]}>
+            <Text style={[styles.amountLabel, { color: theme.colors.textSecondary }]}>Amount</Text>
             <Text style={[styles.amountValue, { color: amountColor }]}>
               {amountPrefix}
               {formatCurrency(transaction.amount)}
@@ -114,11 +120,13 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               label="Type"
               value={transaction.type}
               valueColor={amountColor}
+              theme={theme}
             />
             <DetailCard
               icon="document-text"
               label="Description"
               value={transaction.description || (isDeposit ? 'Deposit' : 'Withdrawal')}
+              theme={theme}
             />
             <DetailCard
               icon="calendar"
@@ -127,18 +135,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 dateStyle: 'medium',
                 timeStyle: 'short',
               })}
+              theme={theme}
             />
             <DetailCard
               icon="finger-print"
               label="Transaction ID"
               value={transaction.id}
               isMonospace
+              theme={theme}
             />
             <DetailCard
               icon="time"
               label="Status"
               value="Completed"
-              valueColor={COLORS.success}
+              valueColor={theme.colors.success}
+              theme={theme}
             />
           </ScrollView>
         </Animated.View>
@@ -153,18 +164,20 @@ interface DetailCardProps {
   value: string;
   valueColor?: string;
   isMonospace?: boolean;
+  theme: any;
 }
 
-const DetailCard: React.FC<DetailCardProps> = ({ icon, label, value, valueColor, isMonospace }) => (
-  <View style={styles.detailCard}>
-    <View style={styles.detailIconContainer}>
-      <Ionicons name={icon} size={20} color={COLORS.primary} />
+const DetailCard: React.FC<DetailCardProps> = ({ icon, label, value, valueColor, isMonospace, theme }) => (
+  <View style={[styles.detailCard, { backgroundColor: `${theme.colors.primary}${OPACITY.subtle}` }]}>
+    <View style={[styles.detailIconContainer, { backgroundColor: theme.colors.surface }]}>
+      <Ionicons name={icon} size={20} color={theme.colors.primary} />
     </View>
     <View style={styles.detailContent}>
-      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
       <Text
         style={[
           styles.detailValue,
+          { color: theme.colors.text },
           valueColor && { color: valueColor },
           isMonospace && styles.monospace,
         ]}
@@ -194,7 +207,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.surface,
     borderTopLeftRadius: BORDER_RADIUS.xxl + 4,
     borderTopRightRadius: BORDER_RADIUS.xxl + 4,
     paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.lg,
@@ -212,14 +224,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.border,
   },
   header: {
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   iconContainer: {
     width: 56,
@@ -232,7 +242,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZE.xl,
     fontWeight: FONT_WEIGHT.bold,
-    color: COLORS.text,
   },
   closeButton: {
     position: 'absolute',
@@ -241,7 +250,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${COLORS.textSecondary}${OPACITY.light}`,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -249,11 +257,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.lg + 4,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   amountLabel: {
     fontSize: FONT_SIZE.xs + 1,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.medium,
     marginBottom: SPACING.xs + 2,
     textTransform: 'uppercase',
@@ -272,7 +278,6 @@ const styles = StyleSheet.create({
   detailCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: `${COLORS.primary}${OPACITY.subtle}`,
     padding: SPACING.md + 2,
     borderRadius: BORDER_RADIUS.md + 2,
     marginBottom: SPACING.sm + 2,
@@ -281,7 +286,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BORDER_RADIUS.sm + 2,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
@@ -291,13 +295,11 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
     fontWeight: FONT_WEIGHT.medium,
     marginBottom: 4,
   },
   detailValue: {
     fontSize: FONT_SIZE.md + 1,
-    color: COLORS.text,
     fontWeight: FONT_WEIGHT.semibold,
     lineHeight: 22,
   },

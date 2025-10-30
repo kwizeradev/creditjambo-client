@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { COLORS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 type CardPadding = 'small' | 'medium' | 'large';
 type CardVariant = 'default' | 'elevated' | 'outlined';
@@ -23,7 +23,6 @@ interface CardProps extends ViewProps {
 const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
-    backgroundColor: COLORS.surface,
   },
   default: {
     shadowColor: '#000',
@@ -41,7 +40,6 @@ const styles = StyleSheet.create({
   },
   outlined: {
     borderWidth: 1,
-    borderColor: COLORS.border,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -88,10 +86,16 @@ function Card({
   variant = 'default',
   ...props
 }: CardProps): React.ReactElement {
+  const { theme } = useTheme();
   const cardStyles = getCardStyles(padding, variant, style);
+  
+  const themeStyles = {
+    backgroundColor: theme.colors.surface,
+    ...(variant === 'outlined' && { borderColor: theme.colors.border }),
+  };
 
   return (
-    <View style={cardStyles} {...props}>
+    <View style={[cardStyles, themeStyles]} {...props}>
       {children}
     </View>
   );

@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '@/lib/constants';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -38,6 +38,7 @@ const Button: React.FC<ButtonProps> = ({
   onPress,
   ...props
 }) => {
+  const { theme } = useTheme();
   const isDisabled = disabled || loading;
 
   const handlePress = useCallback(
@@ -56,13 +57,43 @@ const Button: React.FC<ButtonProps> = ({
     else if (size === 'large') baseStyles.push(styles.largeButton);
     else baseStyles.push(styles.mediumButton);
 
-    if (variant === 'secondary') baseStyles.push(styles.secondaryButton);
-    else if (variant === 'outline') baseStyles.push(styles.outlineButton);
-    else if (variant === 'ghost') baseStyles.push(styles.ghostButton);
-    else baseStyles.push(styles.primaryButton);
+    if (variant === 'secondary') {
+      baseStyles.push({
+        backgroundColor: theme.colors.secondary,
+        shadowColor: theme.colors.secondary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      });
+    } else if (variant === 'outline') {
+      baseStyles.push({
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
+      });
+    } else if (variant === 'ghost') {
+      baseStyles.push(styles.ghostButton);
+    } else {
+      baseStyles.push({
+        backgroundColor: theme.colors.primary,
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      });
+    }
 
     if (fullWidth) baseStyles.push(styles.fullWidth);
-    if (isDisabled) baseStyles.push(styles.disabledButton);
+    if (isDisabled) {
+      baseStyles.push({
+        backgroundColor: theme.colors.disabled,
+        borderColor: theme.colors.disabled,
+        shadowOpacity: 0,
+        elevation: 0,
+      });
+    }
 
     return [...baseStyles, style];
   };
@@ -75,24 +106,26 @@ const Button: React.FC<ButtonProps> = ({
     else baseStyles.push(styles.mediumText);
 
     if (variant === 'outline' || variant === 'ghost') {
-      baseStyles.push(styles.outlineButtonText);
+      baseStyles.push({ color: theme.colors.primary });
     } else {
       baseStyles.push(styles.primaryButtonText);
     }
 
-    if (isDisabled) baseStyles.push(styles.disabledText);
+    if (isDisabled) {
+      baseStyles.push({ color: theme.colors.textSecondary });
+    }
 
     return baseStyles;
   };
 
   const getIconColor = (): string => {
-    if (isDisabled) return COLORS.textSecondary;
-    if (variant === 'outline' || variant === 'ghost') return COLORS.primary;
+    if (isDisabled) return theme.colors.textSecondary;
+    if (variant === 'outline' || variant === 'ghost') return theme.colors.primary;
     return '#ffffff';
   };
 
   const getLoadingColor = (): string => {
-    if (variant === 'outline' || variant === 'ghost') return COLORS.primary;
+    if (variant === 'outline' || variant === 'ghost') return theme.colors.primary;
     return '#ffffff';
   };
 
@@ -173,35 +206,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     minHeight: 60,
   },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  secondaryButton: {
-    backgroundColor: COLORS.secondary,
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
   ghostButton: {
     backgroundColor: 'transparent',
-  },
-  disabledButton: {
-    backgroundColor: COLORS.disabled,
-    borderColor: COLORS.disabled,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   buttonText: {
     fontWeight: '600',
@@ -218,12 +224,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#ffffff',
-  },
-  outlineButtonText: {
-    color: COLORS.primary,
-  },
-  disabledText: {
-    color: COLORS.textSecondary,
   },
   iconLeft: {
     marginRight: 8,

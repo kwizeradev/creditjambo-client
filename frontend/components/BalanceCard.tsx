@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '@/lib/constants';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils/date';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface BalanceCardProps {
   balance: string | number;
@@ -12,9 +13,15 @@ interface BalanceCardProps {
 }
 
 const BalanceCard: React.FC<BalanceCardProps> = ({ balance, isLoading, lastUpdated }) => {
+  const { theme } = useTheme();
+  
   return (
     <LinearGradient
-      colors={['#10b981', '#059669', '#047857']}
+      colors={[
+        theme.colors.cardGradientStart,
+        theme.colors.cardGradientMiddle,
+        theme.colors.cardGradientEnd,
+      ]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.card}
@@ -58,7 +65,6 @@ const styles = StyleSheet.create({
     padding: SPACING.xxxl + 4,
     marginBottom: SPACING.xl,
     minHeight: 200,
-    shadowColor: '#10b981',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,

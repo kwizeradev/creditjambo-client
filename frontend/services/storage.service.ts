@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   USER_DATA: 'user_data',
   DEVICE_PENDING: 'device_pending',
   DEVICE_ID: 'device_id',
+  THEME_PREFERENCE: 'theme_preference',
 } as const;
 
 interface DevicePendingState {
@@ -92,4 +93,12 @@ export async function clearDevicePendingState(): Promise<void> {
 
 export async function clearAllStorage(): Promise<void> {
   await Promise.all([clearTokens(), clearDevicePendingState()]);
+}
+
+export async function saveThemePreference(preference: string): Promise<void> {
+  await SecureStore.setItemAsync(STORAGE_KEYS.THEME_PREFERENCE, preference);
+}
+
+export async function getThemePreference(): Promise<string | null> {
+  return await SecureStore.getItemAsync(STORAGE_KEYS.THEME_PREFERENCE);
 }

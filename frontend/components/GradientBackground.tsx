@@ -1,17 +1,19 @@
 import React from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, OPACITY } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface GradientBackgroundProps extends ViewProps {
   children: React.ReactNode;
 }
 
 const GradientBackground: React.FC<GradientBackgroundProps> = ({ children, style, ...props }) => {
+  const { theme } = useTheme();
+  
   const gradientColors = [
-    `${COLORS.primary}${OPACITY.subtle}`,
-    COLORS.background,
-    COLORS.surface,
+    theme.colors.background,
+    theme.colors.background,
+    theme.colors.surface,
   ] as const;
 
   return (

@@ -3,8 +3,9 @@ import { StyleSheet, Alert, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { SPACING, COLORS } from '@/lib/constants';
+import { SPACING } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import GradientBackground from '@/components/GradientBackground';
 import BalanceCard from '@/components/BalanceCard';
@@ -18,6 +19,7 @@ import {
 import type { Transaction } from '@/types';
 
 export default function Dashboard(): React.ReactElement {
+  const { theme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -63,8 +65,8 @@ export default function Dashboard(): React.ReactElement {
 
   const handleViewAllTransactions = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Coming Soon', 'Full transaction history will be available soon!');
-  }, []);
+    router.push('/(app)/transactions');
+  }, [router]);
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -89,8 +91,8 @@ export default function Dashboard(): React.ReactElement {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
             />
           }
         >

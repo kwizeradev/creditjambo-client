@@ -15,7 +15,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { COLORS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { useForm } from '@/lib/hooks/useForm';
 import { signInSchema } from '@/lib/validations/auth';
 import type { SignInForm } from '@/types/auth';
@@ -45,6 +45,7 @@ function isNetworkError(message: string): boolean {
 }
 
 export default function SignIn() {
+  const { theme } = useTheme();
   const { login } = useAuth();
   const { showNotification } = useNotification();
   const router = useRouter();
@@ -174,7 +175,7 @@ export default function SignIn() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -184,17 +185,17 @@ export default function SignIn() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
             <View style={styles.headerContent}>
               <Text style={styles.appTitle}>Credit Jambo</Text>
               <Text style={styles.appSubtitle}>Savings Management</Text>
             </View>
           </View>
 
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Welcome Back</Text>
+              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Sign in to your Credit Jambo account
               </Text>
             </View>
@@ -235,12 +236,13 @@ export default function SignIn() {
                 <View
                   style={[
                     styles.checkbox,
-                    rememberDevice && styles.checkboxChecked,
+                    { borderColor: theme.colors.border, backgroundColor: theme.colors.surface },
+                    rememberDevice && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
                   ]}
                 >
                   {rememberDevice && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>Remember this device</Text>
+                <Text style={[styles.checkboxLabel, { color: theme.colors.textSecondary }]}>Remember this device</Text>
               </TouchableOpacity>
 
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
@@ -257,16 +259,16 @@ export default function SignIn() {
               </Animated.View>
 
               <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>
+                <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
                   Forgot your password?
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.signUpLink}>
-                <Text style={styles.signUpText}>Don't have an account? </Text>
+                <Text style={[styles.signUpText, { color: theme.colors.textSecondary }]}>Don't have an account? </Text>
                 <Link href="/auth/sign-up" asChild>
                   <TouchableOpacity accessibilityRole="button">
-                    <Text style={styles.signUpLinkText}>Sign Up</Text>
+                    <Text style={[styles.signUpLinkText, { color: theme.colors.primary }]}>Sign Up</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -281,7 +283,6 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
@@ -290,7 +291,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    backgroundColor: COLORS.primary,
     paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 24,
@@ -311,7 +311,6 @@ const styles = StyleSheet.create({
   },
   formCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     marginTop: -20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -331,12 +330,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -352,16 +349,10 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: COLORS.border,
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   checkmark: {
     color: '#ffffff',
@@ -370,7 +361,6 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    color: COLORS.textSecondary,
   },
   submitButton: {
     marginTop: 8,
@@ -382,7 +372,6 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: COLORS.primary,
     fontWeight: '500',
   },
   signUpLink: {
@@ -392,11 +381,9 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 16,
-    color: COLORS.textSecondary,
   },
   signUpLinkText: {
     fontSize: 16,
-    color: COLORS.primary,
     fontWeight: '600',
   },
 });

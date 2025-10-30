@@ -7,9 +7,18 @@ export const accountService = {
     return response.data.data!;
   },
 
-  async getTransactions(limit: number = 10, page: number = 1): Promise<PaginatedTransactions> {
+  async getTransactions(limit: number = 10, page: number = 1, type?: 'DEPOSIT' | 'WITHDRAW'): Promise<PaginatedTransactions> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      page: page.toString(),
+    });
+    
+    if (type) {
+      params.append('type', type);
+    }
+    
     const response = await api.get<ApiResponse<PaginatedTransactions>>(
-      `/account/transactions?limit=${limit}&page=${page}`
+      `/account/transactions?${params.toString()}`
     );
     return response.data.data!;
   },
