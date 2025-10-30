@@ -16,8 +16,13 @@ export const DeviceVerificationSchema = z.object({
   verified: z.boolean(),
 });
 
+export const DeviceVerificationCheckSchema = z.object({
+  deviceId: z.string().min(1, 'Device ID is required'),
+});
+
 export type DeviceResponse = z.infer<typeof DeviceResponseSchema>;
 export type DeviceVerificationInput = z.infer<typeof DeviceVerificationSchema>;
+export type DeviceVerificationCheckInput = z.infer<typeof DeviceVerificationCheckSchema>;
 
 export function toDeviceResponse(device: Device): DeviceResponse {
   return {

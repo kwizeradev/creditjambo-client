@@ -1,16 +1,26 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useRouter, useSegments } from 'expo-router';
-import api, { handleApiError } from '@/services/api';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+
+import api from '@/services/api';
+import { handleApiError } from '@/services/api';
+import { getDeviceId, getDeviceInfo } from '@/services/device.service';
 import {
-  saveTokens,
+  clearDevicePendingState,
   clearTokens,
   getAccessToken,
-  saveUser,
+  getDevicePendingState,
   getUser,
+  saveDevicePendingState,
+  saveTokens,
+  saveUser,
 } from '@/services/storage.service';
-
-import { getDeviceId, getDeviceInfo } from '@/services/device.service';
-import { User, LoginResponse } from '@/types';
+import type { LoginResponse, User } from '@/types';
+import { useRouter } from 'expo-router';
 
 interface AuthContextType {
   user: User | null;
@@ -28,126 +38,108 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const segments = useSegments();
 
   useEffect(() => {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === 'auth';
-    const isOnIndexPage = !segments.length;
-
-    if (isOnIndexPage) return;
-
-    if (!user && !inAuthGroup) {
-      router.replace('/auth/sign-in');
-    } else if (user && inAuthGroup) {
-      router.replace('/(app)');
-    }
-  }, [user, segments, isLoading]);
-
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
-      const token = await getAccessToken();
-      const savedUser = await getUser();
+      const { devicePending } = await getDevicePendingState();
+
+      if (devicePending) {
+        setUser(null);
+        return;
+      }
+
+      const [token, savedUser] = await Promise.all([
+        getAccessToken(),
+        getUser(),
+      ]);
 
       if (token && savedUser) {
         setUser(savedUser);
       }
-    } catch (error) {
-      console.error('Error loading user:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const login = async (
-    email: string,
-    password: string
-  ): Promise<LoginResponse> => {
-    try {
-      const deviceId = await getDeviceId();
+  const login = useCallback(
+    async (email: string, password: string): Promise<LoginResponse> => {
+      try {
+        const deviceId = await getDeviceId();
 
-      const response = await api.post('/auth/login', {
-        email,
-        password,
-        deviceId,
-      });
+        const response = await api.post('/auth/login', {
+          email,
+          password,
+          deviceId,
+        });
 
-      const data = response.data.data as LoginResponse;
+        const data = response.data.data as LoginResponse;
 
-      if (data.devicePending) {
+        if (data.devicePending) {
+          await Promise.all([
+            clearTokens(),
+            saveDevicePendingState(true, data.deviceId),
+          ]);
+          setUser(null);
+          return data;
+        }
+
+        if (data.tokens && data.user) {
+          await Promise.all([
+            saveTokens(data.tokens.accessToken, data.tokens.refreshToken),
+            saveUser(data.user),
+            clearDevicePendingState(),
+          ]);
+          setUser(data.user);
+        }
+
         return data;
+      } catch (error) {
+        await clearDevicePendingState();
+        throw new Error(handleApiError(error));
       }
+    },
+    []
+  );
 
-      if (data.tokens && data.user) {
-        await saveTokens(data.tokens.accessToken, data.tokens.refreshToken);
-        await saveUser(data.user);
-        setUser(data.user);
+  const register = useCallback(
+    async (name: string, email: string, password: string): Promise<void> => {
+      try {
+        const [deviceId, deviceInfo] = await Promise.all([
+          getDeviceId(),
+          getDeviceInfo(),
+        ]);
+
+        await api.post('/auth/register', {
+          name,
+          email,
+          password,
+          deviceId,
+          deviceInfo,
+        });
+      } catch (error) {
+        throw new Error(handleApiError(error));
       }
+    },
+    []
+  );
 
-      return data;
-    } catch (error) {
-      throw new Error(handleApiError(error));
-    }
-  };
-
-  const register = async (
-    name: string,
-    email: string,
-    password: string
-  ): Promise<void> => {
-    try {
-      const deviceId = await getDeviceId();
-      const deviceInfo = await getDeviceInfo();
-
-      console.log('=== Registration Request ===');
-      console.log('Sending registration data:', {
-        name,
-        email,
-        password: '[HIDDEN]',
-        deviceId,
-        deviceInfo,
-      });
-
-      const response = await api.post('/auth/register', {
-        name,
-        email,
-        password,
-        deviceId,
-        deviceInfo,
-      });
-
-      console.log('Registration response:', response.data);
-    } catch (error) {
-      console.error('=== Registration Error ===');
-      console.error('Full error object:', error);
-
-      const errorMessage = handleApiError(error);
-      console.error('Processed error message:', errorMessage);
-
-      throw new Error(errorMessage);
-    }
-  };
-
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
     } finally {
       await clearTokens();
       setUser(null);
       router.replace('/auth/sign-in');
     }
-  };
+  }, [router]);
 
-  const refreshAuth = async () => {
+  const refreshAuth = useCallback(async () => {
     await loadUser();
-  };
+  }, [loadUser]);
 
   const value: AuthContextType = {
     user,

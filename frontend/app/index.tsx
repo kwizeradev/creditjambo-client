@@ -1,18 +1,56 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
   ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+
+import { COLORS } from '@/lib/constants';
+import {
+  getAccessToken,
+  getDevicePendingState,
+} from '@/services/storage.service';
 import { Ionicons } from '@expo/vector-icons';
-import { getAccessToken } from '@/services/storage.service';
-import { COLORS } from '@/constants/configs';
+import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
+const ANIMATION_DURATION = 600;
+const FADE_IN_OPACITY = 1;
+
+const LOADING_DELAYS = {
+  INITIALIZE: 1200,
+  DEVICE_CHECK: 700,
+  DEVICE_PENDING: 800,
+  AUTH_CHECK: 800,
+  WELCOME: 800,
+  GETTING_STARTED: 800,
+  ERROR_REDIRECT: 500,
+} as const;
+
+const STATUS_MESSAGES = {
+  INITIALIZING: 'Initializing...',
+  CHECKING_DEVICE: 'Checking device status...',
+  DEVICE_PENDING: 'Device verification pending...',
+  CHECKING_AUTH: 'Checking authentication...',
+  WELCOME_BACK: 'Welcome back!',
+  GETTING_STARTED: 'Getting started...',
+  REDIRECTING: 'Redirecting...',
+} as const;
+
+const ROUTES = {
+  DEVICE_PENDING: '/device-pending',
+  APP: '/(app)',
+  SIGN_IN: '/auth/sign-in',
+} as const;
+
 SplashScreen.preventAutoHideAsync();
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
 
 export default function Index() {
   const router = useRouter();
@@ -20,50 +58,92 @@ export default function Index() {
   const [isReady, setIsReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    startLoadingSequence();
-  }, []);
+  // clearAllStorage();
 
-  const startLoadingSequence = async () => {
+  const startFadeInAnimation = useCallback(() => {
+    Animated.timing(fadeAnim, {
+      toValue: FADE_IN_OPACITY,
+      duration: ANIMATION_DURATION,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const handleDevicePendingFlow = useCallback(
+    async (deviceId: string | null) => {
+      setStatus(STATUS_MESSAGES.DEVICE_PENDING);
+      await delay(LOADING_DELAYS.DEVICE_PENDING);
+      setIsReady(true);
+      router.replace({
+        pathname: ROUTES.DEVICE_PENDING,
+        params: { deviceId: deviceId || '' },
+      });
+    },
+    [router]
+  );
+
+  const handleAuthenticatedFlow = useCallback(async () => {
+    setStatus(STATUS_MESSAGES.WELCOME_BACK);
+    await delay(LOADING_DELAYS.WELCOME);
+    setIsReady(true);
+    router.replace(ROUTES.APP);
+  }, [router]);
+
+  const handleUnauthenticatedFlow = useCallback(async () => {
+    setStatus(STATUS_MESSAGES.GETTING_STARTED);
+    await delay(LOADING_DELAYS.GETTING_STARTED);
+    setIsReady(true);
+    router.replace(ROUTES.SIGN_IN);
+  }, [router]);
+
+  const handleInitializationError = useCallback(async () => {
+    setStatus(STATUS_MESSAGES.REDIRECTING);
+    await delay(LOADING_DELAYS.ERROR_REDIRECT);
+    setIsReady(true);
+    router.replace(ROUTES.SIGN_IN);
+  }, [router]);
+
+  const startLoadingSequence = useCallback(async () => {
     try {
       await SplashScreen.hideAsync();
+      startFadeInAnimation();
 
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
+      setStatus(STATUS_MESSAGES.INITIALIZING);
+      await delay(LOADING_DELAYS.INITIALIZE);
 
-      setStatus('Initializing...');
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      setStatus(STATUS_MESSAGES.CHECKING_DEVICE);
+      await delay(LOADING_DELAYS.DEVICE_CHECK);
 
-      setStatus('Checking authentication...');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const { devicePending, deviceId } = await getDevicePendingState();
+
+      if (devicePending) {
+        await handleDevicePendingFlow(deviceId);
+        return;
+      }
+
+      setStatus(STATUS_MESSAGES.CHECKING_AUTH);
+      await delay(LOADING_DELAYS.AUTH_CHECK);
 
       const token = await getAccessToken();
 
-      setStatus('Loading user data...');
-      await new Promise(resolve => setTimeout(resolve, 700));
-
       if (token) {
-        setStatus('Welcome back!');
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setIsReady(true);
-        router.replace('/(app)');
+        await handleAuthenticatedFlow();
       } else {
-        setStatus('Getting started...');
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setIsReady(true);
-        router.replace('/auth/sign-in');
+        await handleUnauthenticatedFlow();
       }
-    } catch (error) {
-      console.error('Error during initialization:', error);
-      setStatus('Redirecting...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setIsReady(true);
-      router.replace('/auth/sign-in');
+    } catch {
+      await handleInitializationError();
     }
-  };
+  }, [
+    startFadeInAnimation,
+    handleDevicePendingFlow,
+    handleAuthenticatedFlow,
+    handleUnauthenticatedFlow,
+    handleInitializationError,
+  ]);
+
+  useEffect(() => {
+    startLoadingSequence();
+  }, [startLoadingSequence]);
 
   if (isReady) {
     return null;

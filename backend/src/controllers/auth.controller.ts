@@ -77,6 +77,29 @@ export class AuthController {
       message: result.message,
     });
   }
+
+  async checkDeviceVerification(req: Request, res: Response): Promise<void> {
+    const { deviceId } = req.body;
+
+    if (!deviceId) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Device ID is required',
+      });
+      return;
+    }
+
+    const result = await authService.checkDeviceVerification(deviceId);
+
+    res.status(200).json({
+      status: 'success',
+      message: result.message,
+      data: {
+        verified: result.verified,
+        deviceId: result.deviceId,
+      },
+    });
+  }
 }
 
 export default new AuthController();

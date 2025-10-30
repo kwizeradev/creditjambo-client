@@ -1,19 +1,109 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+
+import { StyleSheet, Text, View } from 'react-native';
+
+import { COLORS } from '@/lib/constants';
+import type {
+  PasswordRequirement,
+  PasswordStrength as PasswordStrengthType,
+} from '@/types/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/configs';
-import type { PasswordStrength as PasswordStrengthType } from '@/types/auth';
 
 interface PasswordStrengthProps {
   strength: PasswordStrengthType;
   showRequirements?: boolean;
 }
 
-const PasswordStrength: React.FC<PasswordStrengthProps> = ({
+const STRENGTH_SEGMENTS = [1, 2, 3, 4, 5];
+const REQUIREMENT_ICON_SIZE = 16;
+
+function getRequirementIconName(
+  isMet: boolean
+): keyof typeof Ionicons.glyphMap {
+  return isMet ? 'checkmark-circle' : 'close-circle';
+}
+
+function getRequirementColor(isMet: boolean): string {
+  return isMet ? COLORS.success : COLORS.textSecondary;
+}
+
+function getSegmentColor(
+  segment: number,
+  score: number,
+  strengthColor: string
+): string {
+  return segment <= score ? strengthColor : COLORS.border;
+}
+
+interface StrengthBarProps {
+  score: number;
+  color: string;
+}
+
+function StrengthBar({ score, color }: StrengthBarProps): React.ReactElement {
+  return (
+    <View style={styles.strengthBar}>
+      {STRENGTH_SEGMENTS.map(segment => (
+        <View
+          key={segment}
+          style={[
+            styles.strengthSegment,
+            { backgroundColor: getSegmentColor(segment, score, color) },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+interface RequirementItemProps {
+  requirement: PasswordRequirement;
+}
+
+function RequirementItem({
+  requirement,
+}: RequirementItemProps): React.ReactElement {
+  const iconName = getRequirementIconName(requirement.met);
+  const color = getRequirementColor(requirement.met);
+
+  return (
+    <View style={styles.requirement}>
+      <Ionicons
+        name={iconName}
+        size={REQUIREMENT_ICON_SIZE}
+        color={color}
+        style={styles.requirementIcon}
+      />
+      <Text style={[styles.requirementText, { color }]}>
+        {requirement.text}
+      </Text>
+    </View>
+  );
+}
+
+interface RequirementsListProps {
+  requirements: PasswordRequirement[];
+}
+
+function RequirementsList({
+  requirements,
+}: RequirementsListProps): React.ReactElement {
+  return (
+    <View style={styles.requirements}>
+      {requirements.map((requirement, index) => (
+        <RequirementItem key={index} requirement={requirement} />
+      ))}
+    </View>
+  );
+}
+
+function PasswordStrength({
   strength,
   showRequirements = false,
-}) => {
-  if (!strength.label) return null;
+}: PasswordStrengthProps): React.ReactElement | null {
+  if (!strength.label) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -24,50 +114,14 @@ const PasswordStrength: React.FC<PasswordStrengthProps> = ({
         </Text>
       </View>
 
-      <View style={styles.strengthBar}>
-        {[1, 2, 3, 4, 5].map(segment => (
-          <View
-            key={segment}
-            style={[
-              styles.strengthSegment,
-              {
-                backgroundColor:
-                  segment <= strength.score ? strength.color : COLORS.border,
-              },
-            ]}
-          />
-        ))}
-      </View>
+      <StrengthBar score={strength.score} color={strength.color} />
 
       {showRequirements && (
-        <View style={styles.requirements}>
-          {strength.requirements.map((requirement, index) => (
-            <View key={index} style={styles.requirement}>
-              <Ionicons
-                name={requirement.met ? 'checkmark-circle' : 'close-circle'}
-                size={16}
-                color={requirement.met ? COLORS.success : COLORS.textSecondary}
-                style={styles.requirementIcon}
-              />
-              <Text
-                style={[
-                  styles.requirementText,
-                  {
-                    color: requirement.met
-                      ? COLORS.success
-                      : COLORS.textSecondary,
-                  },
-                ]}
-              >
-                {requirement.text}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <RequirementsList requirements={strength.requirements} />
       )}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {

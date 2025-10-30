@@ -1,15 +1,22 @@
-import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
+
 import {
-  View,
+  Pressable,
+  StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
   TextInputProps,
-  Pressable,
+  View,
 } from 'react-native';
+
+import { COLORS } from '@/lib/constants';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/configs';
 
 interface InputProps extends Omit<TextInputProps, 'secureTextEntry'> {
   label?: string;
@@ -87,7 +94,10 @@ const Input = forwardRef<TextInput, InputProps>(
           </Text>
         )}
 
-        <Pressable style={getInputContainerStyle()} onPress={handleContainerPress}>
+        <Pressable
+          style={getInputContainerStyle()}
+          onPress={handleContainerPress}
+        >
           {icon && (
             <Ionicons
               name={icon}

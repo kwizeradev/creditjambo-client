@@ -1,40 +1,56 @@
-import { Stack } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+
+import { AuthProvider } from '@/contexts/AuthContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '../contexts/AuthContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
-import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
+import { Stack } from 'expo-router';
+
+const NOTIFICATION_HANDLER_CONFIG = {
+  shouldShowAlert: true,
+  shouldShowBanner: true,
+  shouldShowList: true,
+  shouldPlaySound: true,
+  shouldSetBadge: true,
+} as const;
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async () => NOTIFICATION_HANDLER_CONFIG,
 });
+
+const QUERY_RETRY_COUNT = 2;
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
+      retry: QUERY_RETRY_COUNT,
       refetchOnWindowFocus: false,
     },
   },
 });
 
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
+
+const PERMISSION_GRANTED = 'granted';
+
+async function requestNotificationPermissions(): Promise<void> {
+  const { status } = await Notifications.requestPermissionsAsync();
+
+  if (status !== PERMISSION_GRANTED) {
+    return;
+  }
+}
+
 export default function RootLayout() {
-  useEffect(() => {
-    requestNotificationPermissions();
+  const initializeNotifications = useCallback(async () => {
+    await requestNotificationPermissions();
   }, []);
 
-  const requestNotificationPermissions = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('Notification permissions not granted');
-    }
-  };
+  useEffect(() => {
+    initializeNotifications();
+  }, [initializeNotifications]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -47,6 +63,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="index" />
             <Stack.Screen name="auth" />
+            <Stack.Screen name="device-pending" />
             <Stack.Screen name="(app)" />
           </Stack>
         </NotificationProvider>

@@ -1,31 +1,42 @@
 import { Alert } from 'react-native';
-import { z } from 'zod';
-import type { AuthError } from '@/types/auth';
 
-export const handleAuthError = (error: unknown): AuthError => {
+import type { AuthError } from '@/types/auth';
+import { z } from 'zod';
+
+const DEFAULT_ERROR_MESSAGE = 'An unexpected error occurred';
+const VALIDATION_ERROR_MESSAGE = 'Validation error';
+const ALERT_BUTTON_TEXT = 'OK';
+
+function extractZodErrorDetails(zodError: z.ZodError): AuthError {
+  const firstError = zodError.errors[0];
+
+  return {
+    message: firstError?.message || VALIDATION_ERROR_MESSAGE,
+    field: firstError?.path[0]?.toString(),
+  };
+}
+
+function createAuthError(message: string, field?: string): AuthError {
+  return { message, field };
+}
+
+export function handleAuthError(error: unknown): AuthError {
   if (error instanceof z.ZodError) {
-    return {
-      message: error.errors[0]?.message || 'Validation error',
-      field: error.errors[0]?.path[0]?.toString(),
-    };
+    return extractZodErrorDetails(error);
   }
 
   if (error instanceof Error) {
-    return {
-      message: error.message,
-    };
+    return createAuthError(error.message);
   }
 
-  return {
-    message: 'An unexpected error occurred',
-  };
-};
+  return createAuthError(DEFAULT_ERROR_MESSAGE);
+}
 
-export const showErrorAlert = (title: string, message: string): void => {
-  Alert.alert(title, message, [{ text: 'OK' }]);
-};
+export function showErrorAlert(title: string, message: string): void {
+  Alert.alert(title, message, [{ text: ALERT_BUTTON_TEXT }]);
+}
 
-export const getErrorMessage = (error: unknown): string => {
+export function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -34,5 +45,5 @@ export const getErrorMessage = (error: unknown): string => {
     return error;
   }
 
-  return 'An unexpected error occurred';
-};
+  return DEFAULT_ERROR_MESSAGE;
+}

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -7,24 +9,40 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useRouter } from 'expo-router';
 
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import { COLORS } from '@/constants/configs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { COLORS } from '@/lib/constants';
 import { useForm } from '@/lib/hooks/useForm';
 import { signInSchema } from '@/lib/validations/auth';
 import type { SignInForm } from '@/types/auth';
+import { Link, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const INITIAL_VALUES: SignInForm = {
   email: '',
   password: '',
 };
+
+const DEVICE_PENDING_DELAY = 1500;
+const SUCCESS_REDIRECT_DELAY = 1000;
+const BUTTON_SCALE_PRESSED = 0.98;
+const BUTTON_SCALE_NORMAL = 1;
+
+function isAuthenticationError(message: string): boolean {
+  const errorKeywords = ['invalid', 'credentials', 'password'];
+  const lowerMessage = message.toLowerCase();
+  return errorKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
+function isNetworkError(message: string): boolean {
+  const networkKeywords = ['network', 'connection'];
+  const lowerMessage = message.toLowerCase();
+  return networkKeywords.some(keyword => lowerMessage.includes(keyword));
+}
 
 export default function SignIn() {
   const { login } = useAuth();
@@ -33,62 +51,81 @@ export default function SignIn() {
   const [rememberDevice, setRememberDevice] = useState(false);
   const [buttonScale] = useState(new Animated.Value(1));
 
-  const handleSubmit = async (values: SignInForm) => {
-    try {
-      const response = await login(values.email, values.password);
+  const handleDevicePendingResponse = useCallback(
+    (deviceId?: string) => {
+      showNotification(
+        'warning',
+        'Device Verification Required',
+        'Your device is pending admin verification. You will be notified once approved.',
+        5000
+      );
 
-      if (response.devicePending) {
-        showNotification(
-          'warning',
-          'Device Verification Required',
-          'Your device is pending admin verification. You will be notified once approved.',
-          5000
-        );
+      setTimeout(() => {
+        router.replace({
+          pathname: '/device-pending',
+          params: { deviceId: deviceId || '' },
+        });
+      }, DEVICE_PENDING_DELAY);
+    },
+    [router, showNotification]
+  );
 
-        setTimeout(() => {
-          router.replace({
-            pathname: '/device-pending',
-            params: { deviceId: response.deviceId },
-          });
-        }, 1500);
-      } else {
-        showNotification(
-          'success',
-          'Welcome Back!',
-          'You have successfully signed in to your account.',
-          3000
-        );
+  const handleSuccessfulLogin = useCallback(() => {
+    showNotification(
+      'success',
+      'Welcome Back!',
+      'You have successfully signed in to your account.',
+      3000
+    );
 
-        setTimeout(() => {
-          router.replace('/(app)');
-        }, 1000);
-      }
-    } catch (error) {
+    setTimeout(() => {
+      router.replace('/(app)');
+    }, SUCCESS_REDIRECT_DELAY);
+  }, [router, showNotification]);
+
+  const handleLoginError = useCallback(
+    (error: unknown) => {
       const errorMessage =
         error instanceof Error ? error.message : 'An unexpected error occurred';
 
-      if (
-        errorMessage.toLowerCase().includes('invalid') ||
-        errorMessage.toLowerCase().includes('credentials') ||
-        errorMessage.toLowerCase().includes('password')
-      ) {
+      if (isAuthenticationError(errorMessage)) {
         showNotification(
           'error',
           'Sign In Failed',
           'Invalid email or password',
           4000
         );
-      } else if (
-        errorMessage.toLowerCase().includes('network') ||
-        errorMessage.toLowerCase().includes('connection')
-      ) {
+      } else if (isNetworkError(errorMessage)) {
         showNotification('error', 'Connection Error', errorMessage, 5000);
       } else {
         showNotification('error', 'Sign In Failed', errorMessage, 4000);
       }
-      throw error;
-    }
-  };
+    },
+    [showNotification]
+  );
+
+  const handleSubmit = useCallback(
+    async (values: SignInForm) => {
+      try {
+        const response = await login(values.email, values.password);
+
+        if (response.devicePending) {
+          handleDevicePendingResponse(response.deviceId);
+        } else {
+          handleSuccessfulLogin();
+        }
+      } catch (error) {
+        handleLoginError(error);
+        throw error;
+      }
+    },
+    [
+      login,
+      handleDevicePendingResponse,
+      handleSuccessfulLogin,
+      handleLoginError,
+    ]
+  );
 
   const {
     values,
@@ -104,31 +141,37 @@ export default function SignIn() {
     onSubmit: handleSubmit,
   });
 
-  const handleFieldChange = (field: keyof SignInForm, value: string) => {
-    setValue(field, value);
-  };
+  const handleFieldChange = useCallback(
+    (field: keyof SignInForm, value: string) => {
+      setValue(field, value);
+    },
+    [setValue]
+  );
 
-  const handleFieldBlur = (field: keyof SignInForm) => {
-    validateField(field);
-  };
+  const handleFieldBlur = useCallback(
+    (field: keyof SignInForm) => {
+      validateField(field);
+    },
+    [validateField]
+  );
 
-  const handleButtonPressIn = () => {
+  const handleButtonPressIn = useCallback(() => {
     Animated.spring(buttonScale, {
-      toValue: 0.98,
+      toValue: BUTTON_SCALE_PRESSED,
       useNativeDriver: true,
     }).start();
-  };
+  }, [buttonScale]);
 
-  const handleButtonPressOut = () => {
+  const handleButtonPressOut = useCallback(() => {
     Animated.spring(buttonScale, {
-      toValue: 1,
+      toValue: BUTTON_SCALE_NORMAL,
       useNativeDriver: true,
     }).start();
-  };
+  }, [buttonScale]);
 
-  const toggleRememberDevice = () => {
-    setRememberDevice(!rememberDevice);
-  };
+  const toggleRememberDevice = useCallback(() => {
+    setRememberDevice(previous => !previous);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,7 +184,6 @@ export default function SignIn() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.appTitle}>Credit Jambo</Text>
@@ -149,7 +191,6 @@ export default function SignIn() {
             </View>
           </View>
 
-          {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.formHeader}>
               <Text style={styles.title}>Welcome Back</Text>
@@ -185,7 +226,6 @@ export default function SignIn() {
                 required
               />
 
-              {/* Remember Device Checkbox */}
               <TouchableOpacity
                 style={styles.checkboxContainer}
                 onPress={toggleRememberDevice}
@@ -216,7 +256,6 @@ export default function SignIn() {
                 />
               </Animated.View>
 
-              {/* Forgot Password */}
               <TouchableOpacity style={styles.forgotPassword}>
                 <Text style={styles.forgotPasswordText}>
                   Forgot your password?

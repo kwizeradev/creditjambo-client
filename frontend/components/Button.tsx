@@ -1,14 +1,16 @@
 import React, { useCallback } from 'react';
+
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   TouchableOpacityProps,
   View,
 } from 'react-native';
+
+import { COLORS } from '@/lib/constants';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/configs';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -50,18 +52,15 @@ const Button: React.FC<ButtonProps> = ({
   const getButtonStyles = () => {
     const baseStyles: any[] = [styles.button];
 
-    // Add size styles
     if (size === 'small') baseStyles.push(styles.smallButton);
     else if (size === 'large') baseStyles.push(styles.largeButton);
     else baseStyles.push(styles.mediumButton);
 
-    // Add variant styles
     if (variant === 'secondary') baseStyles.push(styles.secondaryButton);
     else if (variant === 'outline') baseStyles.push(styles.outlineButton);
     else if (variant === 'ghost') baseStyles.push(styles.ghostButton);
     else baseStyles.push(styles.primaryButton);
 
-    // Add modifier styles
     if (fullWidth) baseStyles.push(styles.fullWidth);
     if (isDisabled) baseStyles.push(styles.disabledButton);
 
@@ -71,19 +70,16 @@ const Button: React.FC<ButtonProps> = ({
   const getTextStyles = () => {
     const baseStyles: any[] = [styles.buttonText];
 
-    // Add size styles
     if (size === 'small') baseStyles.push(styles.smallText);
     else if (size === 'large') baseStyles.push(styles.largeText);
     else baseStyles.push(styles.mediumText);
 
-    // Add variant styles
     if (variant === 'outline' || variant === 'ghost') {
       baseStyles.push(styles.outlineButtonText);
     } else {
       baseStyles.push(styles.primaryButtonText);
     }
 
-    // Add modifier styles
     if (isDisabled) baseStyles.push(styles.disabledText);
 
     return baseStyles;
@@ -162,8 +158,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Size variants
   smallButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -179,8 +173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     minHeight: 60,
   },
-
-  // Color variants
   primaryButton: {
     backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
@@ -211,8 +203,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
-
-  // Text styles
   buttonText: {
     fontWeight: '600',
     textAlign: 'center',
@@ -235,8 +225,6 @@ const styles = StyleSheet.create({
   disabledText: {
     color: COLORS.textSecondary,
   },
-
-  // Icon styles
   iconLeft: {
     marginRight: 8,
   },

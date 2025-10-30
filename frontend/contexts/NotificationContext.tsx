@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { ReactNode, createContext, useContext, useState } from 'react';
+
 import Notification, { NotificationType } from '@/components/Notification';
 
 interface NotificationData {
@@ -55,7 +56,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       value={{ showNotification, hideNotification }}
     >
       {children}
-      {notifications.map((notification, index) => (
+      {notifications.map(notification => (
         <Notification
           key={notification.id}
           visible={true}

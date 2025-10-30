@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,19 +9,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useRouter } from 'expo-router';
 
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import PasswordStrength from '@/components/PasswordStrength';
-import { COLORS } from '@/constants/configs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { COLORS } from '@/lib/constants';
 import { useForm } from '@/lib/hooks/useForm';
 import { usePasswordStrength } from '@/lib/hooks/usePasswordStrength';
 import { signUpSchema } from '@/lib/validations/auth';
 import type { SignUpForm } from '@/types/auth';
+import { Link, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const INITIAL_VALUES: SignUpForm = {
   name: '',
@@ -28,38 +29,55 @@ const INITIAL_VALUES: SignUpForm = {
   password: '',
 };
 
+const DEVICE_PENDING_REDIRECT_DELAY = 2000;
+const SUCCESS_NOTIFICATION_DURATION = 6000;
+const ERROR_NOTIFICATION_DURATION = 6000;
+
 export default function SignUp() {
   const { register } = useAuth();
   const { showNotification } = useNotification();
   const router = useRouter();
 
-  const handleSubmit = async (values: SignUpForm) => {
-    try {
-      await register(values.name, values.email, values.password);
+  const handleSuccessfulRegistration = useCallback(() => {
+    showNotification(
+      'success',
+      'Account Created Successfully!',
+      'Your account has been created. Please wait for admin verification to access your account.',
+      SUCCESS_NOTIFICATION_DURATION
+    );
 
-      showNotification(
-        'success',
-        'Account Created Successfully!',
-        'Your account has been created. Please wait for admin verification to access your account.',
-        6000
-      );
+    setTimeout(() => {
+      router.replace('/device-pending');
+    }, DEVICE_PENDING_REDIRECT_DELAY);
+  }, [router, showNotification]);
 
-      setTimeout(() => {
-        router.replace('/device-pending');
-      }, 2000);
-    } catch (error) {
-      console.error('=== Sign-up Form Error ===');
-      console.error('Error object:', error);
-
+  const handleRegistrationError = useCallback(
+    (error: unknown) => {
       const errorMessage =
         error instanceof Error ? error.message : 'An unexpected error occurred';
-      console.error('Error message to show:', errorMessage);
 
-      showNotification('error', 'Sign Up Failed', errorMessage, 6000);
+      showNotification(
+        'error',
+        'Sign Up Failed',
+        errorMessage,
+        ERROR_NOTIFICATION_DURATION
+      );
+    },
+    [showNotification]
+  );
 
-      throw error;
-    }
-  };
+  const handleSubmit = useCallback(
+    async (values: SignUpForm) => {
+      try {
+        await register(values.name, values.email, values.password);
+        handleSuccessfulRegistration();
+      } catch (error) {
+        handleRegistrationError(error);
+        throw error;
+      }
+    },
+    [register, handleSuccessfulRegistration, handleRegistrationError]
+  );
 
   const {
     values,
@@ -77,14 +95,19 @@ export default function SignUp() {
 
   const passwordStrength = usePasswordStrength(values.password);
 
-  const handleFieldChange = (field: keyof SignUpForm, value: string) => {
-    setValue(field, value);
-  };
+  const handleFieldChange = useCallback(
+    (field: keyof SignUpForm, value: string) => {
+      setValue(field, value);
+    },
+    [setValue]
+  );
 
-  const handleFieldBlur = (field: keyof SignUpForm) => {
-    validateField(field);
-    // Error is automatically set by the useForm hook
-  };
+  const handleFieldBlur = useCallback(
+    (field: keyof SignUpForm) => {
+      validateField(field);
+    },
+    [validateField]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -97,7 +120,6 @@ export default function SignUp() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.appTitle}>Credit Jambo</Text>
@@ -105,7 +127,6 @@ export default function SignUp() {
             </View>
           </View>
 
-          {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.formHeader}>
               <Text style={styles.title}>Create Account</Text>
@@ -150,7 +171,6 @@ export default function SignUp() {
                 error={errors.password}
                 icon="lock-closed"
                 isPassword
-                autoComplete="new-password"
                 required
               />
 

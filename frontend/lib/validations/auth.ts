@@ -1,21 +1,48 @@
 import { z } from 'zod';
 
+const NAME_MIN_LENGTH = 2;
+const NAME_MAX_LENGTH = 100;
+const PASSWORD_MIN_LENGTH = 8;
+
+const VALIDATION_MESSAGES = {
+  NAME_TOO_SHORT: 'Name must be at least 2 characters',
+  NAME_TOO_LONG: 'Name must not exceed 100 characters',
+  INVALID_EMAIL: 'Please enter a valid email address',
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters',
+  PASSWORD_MISSING_NUMBER: 'Password must contain at least one number',
+  PASSWORD_MISSING_UPPERCASE:
+    'Password must contain at least one uppercase letter',
+  PASSWORD_REQUIRED: 'Password is required',
+  VALIDATION_ERROR: 'Validation error',
+} as const;
+
+const PASSWORD_PATTERNS = {
+  NUMBER: /[0-9]/,
+  UPPERCASE: /[A-Z]/,
+} as const;
+
 export const signUpSchema = z.object({
   name: z
     .string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name must not exceed 100 characters')
+    .min(NAME_MIN_LENGTH, VALIDATION_MESSAGES.NAME_TOO_SHORT)
+    .max(NAME_MAX_LENGTH, VALIDATION_MESSAGES.NAME_TOO_LONG)
     .trim(),
   email: z
     .string()
     .trim()
     .toLowerCase()
-    .email('Please enter a valid email address'),
+    .email(VALIDATION_MESSAGES.INVALID_EMAIL),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter'),
+    .min(PASSWORD_MIN_LENGTH, VALIDATION_MESSAGES.PASSWORD_TOO_SHORT)
+    .regex(
+      PASSWORD_PATTERNS.NUMBER,
+      VALIDATION_MESSAGES.PASSWORD_MISSING_NUMBER
+    )
+    .regex(
+      PASSWORD_PATTERNS.UPPERCASE,
+      VALIDATION_MESSAGES.PASSWORD_MISSING_UPPERCASE
+    ),
 });
 
 export const signInSchema = z.object({
@@ -23,28 +50,35 @@ export const signInSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+    .email(VALIDATION_MESSAGES.INVALID_EMAIL),
+  password: z.string().min(1, VALIDATION_MESSAGES.PASSWORD_REQUIRED),
 });
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 
-export const validateField = <T extends Record<string, any>>(
-  schema: z.ZodObject<any>,
+function extractFirstErrorMessage(error: z.ZodError): string {
+  return error.errors[0]?.message || VALIDATION_MESSAGES.VALIDATION_ERROR;
+}
+
+export function validateField<T extends Record<string, unknown>>(
+  schema: z.ZodObject<z.ZodRawShape>,
   field: keyof T,
-  value: any
-): string | undefined => {
+  value: unknown
+): string | undefined {
   try {
-    const fieldValidation = schema.shape[field];
-    if (fieldValidation) {
-      fieldValidation.parse(value);
+    const fieldValidation = schema.shape[field as string];
+
+    if (!fieldValidation) {
+      return undefined;
     }
+
+    fieldValidation.parse(value);
     return undefined;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return error.errors[0]?.message;
+      return extractFirstErrorMessage(error);
     }
-    return 'Validation error';
+    return VALIDATION_MESSAGES.VALIDATION_ERROR;
   }
-};
+}

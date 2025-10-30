@@ -369,6 +369,32 @@ export class AuthService {
       sessionsDeleted: deletedSessions.count,
     };
   }
+
+  async checkDeviceVerification(deviceId: string) {
+    const device = await prisma.device.findUnique({
+      where: { deviceId },
+      select: {
+        id: true,
+        deviceId: true,
+        verified: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!device) {
+      throw new AppError(404, 'Device not found');
+    }
+
+    return {
+      verified: device.verified,
+      deviceId: device.deviceId,
+      message: device.verified
+        ? 'Device is verified'
+        : 'Device is pending verification',
+    };
+  }
 }
 
 export default new AuthService();

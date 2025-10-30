@@ -1,5 +1,5 @@
 import authController from '@/controllers/auth.controller';
-import { LoginUserSchema, RefreshTokenSchema, RegisterUserSchema } from '@/dtos';
+import { LoginUserSchema, RefreshTokenSchema, RegisterUserSchema, DeviceVerificationCheckSchema } from '@/dtos';
 import { asyncHandler, authenticate, validateBody } from '@/middlewares';
 import { Router } from 'express';
 
@@ -24,5 +24,11 @@ router.post(
 );
 
 router.post('/logout', authenticate, asyncHandler(authController.logout.bind(authController)));
+
+router.post(
+  '/check-device-verification',
+  validateBody(DeviceVerificationCheckSchema),
+  asyncHandler(authController.checkDeviceVerification.bind(authController)),
+);
 
 export default router;
