@@ -5,6 +5,7 @@ import { authLimiter } from './security';
 import authRoutes from '@/routes/auth.routes';
 import accountRoutes from '@/routes/account.routes';
 import pushRoutes from '@/routes/push.routes';
+import adminRoutes from '@/routes/admin.routes';
 
 export function configureRoutes(app: Application): void {
   configureRootRoute(app);
@@ -44,4 +45,5 @@ function configureApiRoutes(app: Application): void {
   app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/account', accountRoutes);
   app.use('/api/users', pushRoutes);
+  app.use('/api/admin', adminRoutes);
 }
