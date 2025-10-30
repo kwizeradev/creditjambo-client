@@ -8,8 +8,10 @@ interface NotificationContent {
 
 const PERMISSION_GRANTED = 'granted';
 
-function formatCurrency(amount: string): string {
-  return `$${amount}`;
+function formatCurrency(amount: string | number): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(numAmount)) return 'Rwf 0';
+  return `Rwf ${numAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 async function scheduleImmediateNotification(

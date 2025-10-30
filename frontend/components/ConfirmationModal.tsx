@@ -21,6 +21,8 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  variant?: 'deposit' | 'withdraw';
+  showWarning?: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -34,6 +36,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onCancel,
   isLoading = false,
+  variant = 'deposit',
+  showWarning = false,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -69,7 +73,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   }, [visible, slideAnim, overlayOpacity]);
 
-  const newBalance = parseFloat(currentBalance) + parseFloat(amount || '0');
+  const newBalance = variant === 'deposit'
+    ? parseFloat(currentBalance) + parseFloat(amount || '0')
+    : parseFloat(currentBalance) - parseFloat(amount || '0');
+  
+  const accentColor = variant === 'withdraw' ? COLORS.error : COLORS.primary;
+  const iconName = variant === 'withdraw' ? 'alert-circle' : 'checkmark-circle';
 
   return (
     <Modal
@@ -96,15 +105,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="checkmark-circle" size={48} color={COLORS.primary} />
+              <Ionicons name={iconName} size={48} color={accentColor} />
             </View>
             <Text style={styles.title}>{title}</Text>
+            {showWarning && (
+              <View style={styles.warningBanner}>
+                <Ionicons name="warning" size={16} color={COLORS.warning} />
+                <Text style={styles.warningText}>Large withdrawal - please confirm</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.content}>
             <View style={styles.amountSection}>
-              <Text style={styles.label}>Deposit Amount</Text>
-              <Text style={styles.amount}>{formatCurrency(amount || '0')}</Text>
+              <Text style={styles.label}>{variant === 'withdraw' ? 'Withdrawal Amount' : 'Deposit Amount'}</Text>
+              <Text style={[styles.amount, { color: accentColor }]}>{formatCurrency(amount || '0')}</Text>
             </View>
 
             {description && (
@@ -141,11 +156,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
             <Pressable
               onPress={onConfirm}
-              style={[styles.button, styles.confirmButton]}
+              style={[styles.button, styles.confirmButton, variant === 'withdraw' && styles.confirmButtonWithdraw]}
               disabled={isLoading}
             >
               <Text style={styles.confirmButtonText}>
-                {isLoading ? 'Processing...' : 'Confirm Deposit'}
+                {isLoading ? 'Processing...' : (variant === 'withdraw' ? 'Confirm Withdrawal' : 'Confirm Deposit')}
               </Text>
             </Pressable>
           </View>
@@ -289,5 +304,24 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
     color: '#ffffff',
+  },
+  confirmButtonWithdraw: {
+    backgroundColor: COLORS.error,
+    shadowColor: COLORS.error,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: SPACING.md,
+    gap: SPACING.xs,
+  },
+  warningText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.warning,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 });

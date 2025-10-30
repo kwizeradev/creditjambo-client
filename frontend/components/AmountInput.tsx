@@ -9,6 +9,7 @@ interface AmountInputProps {
   error?: string;
   maxAmount?: number;
   currency?: string;
+  variant?: 'deposit' | 'withdraw';
 }
 
 const AmountInput: React.FC<AmountInputProps> = ({
@@ -17,6 +18,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
   error,
   maxAmount = 1000000,
   currency = 'Rwf',
+  variant = 'deposit',
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -73,6 +75,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
 
   const displayValue = formatDisplayValue(value);
   const hasValue = value && parseFloat(value) > 0;
+  const accentColor = variant === 'withdraw' ? COLORS.error : COLORS.primary;
 
   return (
     <View style={styles.container}>
@@ -80,13 +83,13 @@ const AmountInput: React.FC<AmountInputProps> = ({
         <Animated.View
           style={[
             styles.inputContainer,
-            isFocused && styles.inputFocused,
+            isFocused && (variant === 'withdraw' ? styles.inputFocusedWithdraw : styles.inputFocused),
             error && styles.inputError,
             { transform: [{ scale: scaleAnim }] },
           ]}
         >
           <View style={styles.currencyContainer}>
-            <Text style={styles.currencySymbol}>{currency}</Text>
+            <Text style={[styles.currencySymbol, { color: accentColor }]}>{currency}</Text>
           </View>
 
           <TextInput
@@ -151,6 +154,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: '#ffffff',
     shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 2.5,
+  },
+  inputFocusedWithdraw: {
+    borderColor: COLORS.error,
+    backgroundColor: '#ffffff',
+    shadowColor: COLORS.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 16,

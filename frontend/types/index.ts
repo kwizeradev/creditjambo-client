@@ -66,3 +66,13 @@ export interface DepositResponse {
   transaction: Transaction;
   newBalance: string;
 }
+
+export interface WithdrawInput {
+  amount: number;
+  description?: string;
+}
+
+export interface WithdrawResponse {
+  transaction: Transaction;
+  newBalance: string;
+}

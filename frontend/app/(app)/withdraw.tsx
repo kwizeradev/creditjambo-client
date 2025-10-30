@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,24 +13,28 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '@/lib/constants';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, LOW_BALANCE_THRESHOLD } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils/date';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useDashboardData } from '@/lib/hooks/useDashboardData';
 import accountService from '@/services/account.service';
-import { showDepositNotification } from '@/services/notifications.service';
+import {
+  showWithdrawalNotification,
+  showLowBalanceNotification,
+  showInsufficientFundsNotification,
+} from '@/services/notifications.service';
 import GradientBackground from '@/components/GradientBackground';
 import AmountInput from '@/components/AmountInput';
 import QuickAmountButton from '@/components/QuickAmountButton';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import Input from '@/components/Input';
-import type { DepositInput } from '@/types';
+import type { WithdrawInput } from '@/types';
 
-const QUICK_AMOUNTS = [5000, 10000, 20000, 50000];
 const MAX_AMOUNT = 1000000;
 const MIN_AMOUNT = 100;
+const LARGE_WITHDRAWAL_THRESHOLD = 0.5;
 
-export default function DepositScreen() {
+export default function WithdrawScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
@@ -41,23 +45,33 @@ export default function DepositScreen() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState('');
 
-  const currentBalance = balanceData?.balance || '0';
+  const currentBalance = parseFloat(balanceData?.balance || '0');
 
-  const depositMutation = useMutation({
-    mutationFn: (data: DepositInput) => accountService.deposit(data),
+  const quickAmounts = useMemo(() => {
+    const amounts = [5000, 10000, 20000, 50000];
+    return amounts.filter(amt => amt <= currentBalance);
+  }, [currentBalance]);
+
+  const withdrawMutation = useMutation({
+    mutationFn: (data: WithdrawInput) => accountService.withdraw(data),
     onSuccess: async (data) => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       await queryClient.invalidateQueries({ queryKey: ['balance'] });
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
-      const newBalance = data?.newBalance || (parseFloat(currentBalance) + parseFloat(amount)).toString();
-      await showDepositNotification(amount, newBalance);
+      const newBalance = data?.newBalance || (parseFloat(currentBalance.toString()) - parseFloat(amount)).toString();
+      await showWithdrawalNotification(amount, newBalance);
+      
+      const newBalanceNum = parseFloat(newBalance);
+      if (newBalanceNum < LOW_BALANCE_THRESHOLD) {
+        await showLowBalanceNotification(newBalance);
+      }
       
       showNotification(
         'success',
-        'Deposit Successful',
-        `${formatCurrency(amount)} has been added to your account`
+        'Withdrawal Successful',
+        `${formatCurrency(amount)} has been withdrawn from your account`
       );
 
       setShowConfirmation(false);
@@ -66,11 +80,18 @@ export default function DepositScreen() {
         router.back();
       }, 300);
     },
-    onError: (error: any) => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    onError: async (error: any) => {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       
-      const errorMessage = error.response?.data?.message || 'Failed to process deposit';
-      showNotification('error', 'Deposit Failed', errorMessage);
+      const status = error.response?.status;
+      const errorMessage = error.response?.data?.message || 'Failed to process withdrawal';
+      
+      if (status === 409) {
+        await showInsufficientFundsNotification(amount, currentBalance.toString());
+        showNotification('error', 'Insufficient Funds', errorMessage);
+      } else {
+        showNotification('error', 'Withdrawal Failed', errorMessage);
+      }
       
       setShowConfirmation(false);
     },
@@ -88,11 +109,15 @@ export default function DepositScreen() {
     }
 
     if (numValue < MIN_AMOUNT) {
-      return `Minimum deposit is ${formatCurrency(MIN_AMOUNT)}`;
+      return `Minimum withdrawal is ${formatCurrency(MIN_AMOUNT)}`;
     }
 
     if (numValue > MAX_AMOUNT) {
-      return `Maximum deposit is ${formatCurrency(MAX_AMOUNT)}`;
+      return `Maximum withdrawal is ${formatCurrency(MAX_AMOUNT)}`;
+    }
+
+    if (numValue > currentBalance) {
+      return `Insufficient funds. Available: ${formatCurrency(currentBalance)}`;
     }
 
     const decimalPlaces = (value.split('.')[1] || '').length;
@@ -101,20 +126,27 @@ export default function DepositScreen() {
     }
 
     return '';
-  }, []);
+  }, [currentBalance]);
 
   const handleAmountChange = useCallback((value: string) => {
     setAmount(value);
     if (error) {
-      setError('');
+      const validationError = validateAmount(value);
+      setError(validationError);
     }
-  }, [error]);
+  }, [error, validateAmount]);
 
   const handleQuickAmount = useCallback((quickAmount: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAmount(quickAmount.toString());
     setError('');
   }, []);
+
+  const handleWithdrawAll = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAmount(currentBalance.toString());
+    setError('');
+  }, [currentBalance]);
 
   const handleContinue = useCallback(() => {
     const validationError = validateAmount(amount);
@@ -129,21 +161,22 @@ export default function DepositScreen() {
     setShowConfirmation(true);
   }, [amount, validateAmount]);
 
-  const handleConfirmDeposit = useCallback(() => {
+  const handleConfirmWithdraw = useCallback(() => {
     const numAmount = parseFloat(amount);
     
-    depositMutation.mutate({
+    withdrawMutation.mutate({
       amount: numAmount,
       description: description.trim() || undefined,
     });
-  }, [amount, description, depositMutation]);
+  }, [amount, description, withdrawMutation]);
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
   }, [router]);
 
-  const isValidAmount = amount && parseFloat(amount) >= MIN_AMOUNT && !error;
+  const isValidAmount = amount && parseFloat(amount) >= MIN_AMOUNT && parseFloat(amount) <= currentBalance && !error;
+  const isLargeWithdrawal = parseFloat(amount || '0') > currentBalance * LARGE_WITHDRAWAL_THRESHOLD;
 
   return (
     <GradientBackground style={styles.container}>
@@ -156,7 +189,7 @@ export default function DepositScreen() {
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>Deposit Money</Text>
+          <Text style={styles.headerTitle}>Withdraw Money</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -167,8 +200,9 @@ export default function DepositScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Current Balance</Text>
+            <Text style={styles.balanceLabel}>Available Balance</Text>
             <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
+            <Text style={styles.balanceHint}>Maximum withdrawal limit</Text>
           </View>
 
           <View style={styles.section}>
@@ -177,24 +211,36 @@ export default function DepositScreen() {
               value={amount}
               onChangeText={handleAmountChange}
               error={error}
-              maxAmount={MAX_AMOUNT}
+              maxAmount={currentBalance}
+              variant="withdraw"
             />
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Select</Text>
-            <View style={styles.quickAmountsGrid}>
-              {QUICK_AMOUNTS.map((quickAmount) => (
-                <View key={quickAmount} style={styles.quickAmountItem}>
-                  <QuickAmountButton
-                    amount={quickAmount}
-                    onPress={handleQuickAmount}
-                    isSelected={parseFloat(amount) === quickAmount}
-                  />
-                </View>
-              ))}
+          {quickAmounts.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Quick Select</Text>
+              <View style={styles.quickAmountsGrid}>
+                {quickAmounts.map((quickAmount) => (
+                  <View key={quickAmount} style={styles.quickAmountItem}>
+                    <QuickAmountButton
+                      amount={quickAmount}
+                      onPress={handleQuickAmount}
+                      isSelected={parseFloat(amount) === quickAmount}
+                    />
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
+
+          {currentBalance >= MIN_AMOUNT && (
+            <View style={styles.section}>
+              <Pressable onPress={handleWithdrawAll} style={styles.withdrawAllButton}>
+                <Ionicons name="wallet-outline" size={20} color={COLORS.error} />
+                <Text style={styles.withdrawAllText}>Withdraw All ({formatCurrency(currentBalance)})</Text>
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.section}>
             <Input
@@ -213,11 +259,11 @@ export default function DepositScreen() {
         <View style={styles.footer}>
           <Pressable
             onPress={handleContinue}
-            style={[styles.depositButton, !isValidAmount && styles.depositButtonDisabled]}
+            style={[styles.withdrawButton, !isValidAmount && styles.withdrawButtonDisabled]}
             disabled={!isValidAmount}
           >
-            <Text style={styles.depositButtonText}>
-              {isValidAmount ? `Deposit ${formatCurrency(amount)}` : 'Enter Amount'}
+            <Text style={styles.withdrawButtonText}>
+              {isValidAmount ? `Withdraw ${formatCurrency(amount)}` : 'Enter Amount'}
             </Text>
             <Ionicons
               name="arrow-forward"
@@ -231,13 +277,15 @@ export default function DepositScreen() {
 
       <ConfirmationModal
         visible={showConfirmation}
-        title="Confirm Deposit"
+        title="Confirm Withdrawal"
         amount={amount}
-        currentBalance={currentBalance}
+        currentBalance={currentBalance.toString()}
         description={description}
-        onConfirm={handleConfirmDeposit}
+        onConfirm={handleConfirmWithdraw}
         onCancel={() => setShowConfirmation(false)}
-        isLoading={depositMutation.isPending}
+        isLoading={withdrawMutation.isPending}
+        variant="withdraw"
+        showWarning={isLargeWithdrawal}
       />
     </GradientBackground>
   );
@@ -307,6 +355,12 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.extrabold,
     color: COLORS.text,
     letterSpacing: -0.5,
+    marginBottom: SPACING.xs,
+  },
+  balanceHint: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    fontWeight: FONT_WEIGHT.regular,
   },
   section: {
     marginBottom: SPACING.lg,
@@ -326,6 +380,23 @@ const styles = StyleSheet.create({
   },
   quickAmountItem: {
     width: `${(100 - 4) / 2}%`,
+  },
+  withdrawAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    gap: SPACING.sm,
+  },
+  withdrawAllText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.semibold,
+    color: COLORS.error,
   },
   descriptionInput: {
     minHeight: 72,
@@ -347,8 +418,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  depositButton: {
-    backgroundColor: COLORS.primary,
+  withdrawButton: {
+    backgroundColor: COLORS.error,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
@@ -356,18 +427,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 54,
-    shadowColor: COLORS.primary,
+    shadowColor: COLORS.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
   },
-  depositButtonDisabled: {
+  withdrawButtonDisabled: {
     backgroundColor: COLORS.disabled,
     shadowOpacity: 0,
     elevation: 0,
   },
-  depositButtonText: {
+  withdrawButtonText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
     color: '#ffffff',

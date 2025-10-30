@@ -58,8 +58,8 @@ export default function Dashboard(): React.ReactElement {
 
   const handleWithdraw = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Coming Soon', 'Withdraw feature will be available soon!');
-  }, []);
+    router.push('/(app)/withdraw');
+  }, [router]);
 
   const handleViewAllTransactions = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

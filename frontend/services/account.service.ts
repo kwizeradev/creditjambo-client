@@ -1,5 +1,5 @@
 import api from './api';
-import type { AccountBalance, ApiResponse, PaginatedTransactions, DepositInput, DepositResponse } from '@/types';
+import type { AccountBalance, ApiResponse, PaginatedTransactions, DepositInput, DepositResponse, WithdrawInput, WithdrawResponse } from '@/types';
 
 export const accountService = {
   async getBalance(): Promise<AccountBalance> {
@@ -16,6 +16,11 @@ export const accountService = {
 
   async deposit(data: DepositInput): Promise<DepositResponse> {
     const response = await api.post<ApiResponse<DepositResponse>>('/account/deposit', data);
+    return response.data.data!;
+  },
+
+  async withdraw(data: WithdrawInput): Promise<WithdrawResponse> {
+    const response = await api.post<ApiResponse<WithdrawResponse>>('/account/withdraw', data);
     return response.data.data!;
   },
 };
