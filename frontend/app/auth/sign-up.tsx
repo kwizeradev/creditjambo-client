@@ -2,13 +2,13 @@ import React from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 
 import Button from '@/components/Button';
@@ -16,9 +16,9 @@ import Input from '@/components/Input';
 import PasswordStrength from '@/components/PasswordStrength';
 import { COLORS } from '@/constants/configs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { useForm } from '@/lib/hooks/useForm';
 import { usePasswordStrength } from '@/lib/hooks/usePasswordStrength';
-import { showErrorAlert } from '@/lib/utils/errors';
 import { signUpSchema } from '@/lib/validations/auth';
 import type { SignUpForm } from '@/types/auth';
 
@@ -30,18 +30,34 @@ const INITIAL_VALUES: SignUpForm = {
 
 export default function SignUp() {
   const { register } = useAuth();
+  const { showNotification } = useNotification();
   const router = useRouter();
 
   const handleSubmit = async (values: SignUpForm) => {
     try {
       await register(values.name, values.email, values.password);
-      router.replace('/device-pending');
-    } catch (error) {
-      showErrorAlert(
-        'Sign Up Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
+
+      showNotification(
+        'success',
+        'Account Created Successfully!',
+        'Your account has been created. Please wait for admin verification to access your account.',
+        6000
       );
-      throw error; // Re-throw to keep form in loading state if needed
+
+      setTimeout(() => {
+        router.replace('/device-pending');
+      }, 2000);
+    } catch (error) {
+      console.error('=== Sign-up Form Error ===');
+      console.error('Error object:', error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error('Error message to show:', errorMessage);
+
+      showNotification('error', 'Sign Up Failed', errorMessage, 6000);
+
+      throw error;
     }
   };
 
@@ -121,7 +137,6 @@ export default function SignUp() {
                 error={errors.email}
                 icon="mail"
                 keyboardType="email-address"
-                autoCapitalize="none"
                 autoComplete="email"
                 required
               />

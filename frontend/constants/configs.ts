@@ -1,9 +1,9 @@
 const ENV = {
   dev: {
-    apiUrl: 'http://localhost:4000/api',
+    apiUrl: 'http://192.168.1.4:4000/api',
   },
   prod: {
-    apiUrl: '',
+    apiUrl: 'https://your-production-api.com/api',
   },
 };
 

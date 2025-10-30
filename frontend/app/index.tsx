@@ -1,55 +1,89 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
-  ActivityIndicator,
   StyleSheet,
-  TouchableOpacity,
+  Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { getAccessToken } from '@/services/storage.service';
-import { showDepositNotification } from '@/services/notifications.service';
 import { COLORS } from '@/constants/configs';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function Index() {
   const router = useRouter();
+  const [status, setStatus] = useState('Initializing...');
+  const [isReady, setIsReady] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    checkAuth();
+    startLoadingSequence();
   }, []);
 
-  const checkAuth = async () => {
+  const startLoadingSequence = async () => {
     try {
+      await SplashScreen.hideAsync();
+
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+
+      setStatus('Initializing...');
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      setStatus('Checking authentication...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       const token = await getAccessToken();
 
-      // Wait a bit for better UX
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setStatus('Loading user data...');
+      await new Promise(resolve => setTimeout(resolve, 700));
 
       if (token) {
+        setStatus('Welcome back!');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setIsReady(true);
         router.replace('/(app)');
       } else {
-        router.replace('/auth/sign-up');
+        setStatus('Getting started...');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setIsReady(true);
+        router.replace('/auth/sign-in');
       }
     } catch (error) {
-      console.error('Error checking auth:', error);
-      router.replace('/auth/sign-up');
+      console.error('Error during initialization:', error);
+      setStatus('Redirecting...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsReady(true);
+      router.replace('/auth/sign-in');
     }
   };
 
-  const testNotification = async () => {
-    await showDepositNotification('500', '1500');
-  };
+  if (isReady) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Credit Jambo</Text>
-      <Text style={styles.subtitle}>Savings Management</Text>
-      <ActivityIndicator size="large" color="#ffffff" style={styles.loader} />
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="wallet" size={64} color="#ffffff" />
+        </View>
 
-      {/* Test button - remove later */}
-      <TouchableOpacity style={styles.testButton} onPress={testNotification}>
-        <Text style={styles.testButtonText}>Test Notification</Text>
-      </TouchableOpacity>
+        <Text style={styles.title}>Credit Jambo</Text>
+        <Text style={styles.subtitle}>Savings Management</Text>
+
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#ffffff" />
+          <Text style={styles.statusText}>{status}</Text>
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -57,34 +91,42 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+  },
+  content: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoContainer: {
+    marginBottom: 32,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#ffffff',
     opacity: 0.9,
+    textAlign: 'center',
+    marginBottom: 48,
   },
-  loader: {
-    marginTop: 32,
+  loadingContainer: {
+    alignItems: 'center',
+    gap: 12,
   },
-  testButton: {
-    position: 'absolute',
-    bottom: 50,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  testButtonText: {
-    color: COLORS.primary,
-    fontWeight: '600',
+  statusText: {
+    fontSize: 14,
+    color: '#ffffff',
+    opacity: 0.8,
+    textAlign: 'center',
   },
 });

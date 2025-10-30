@@ -1,4 +1,4 @@
-import React, { useState, useCallback, forwardRef } from 'react';
+import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInputProps,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/configs';
@@ -37,9 +38,16 @@ const Input = forwardRef<TextInput, InputProps>(
   ) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const inputRef = useRef<TextInput>(null);
+
+    useImperativeHandle(ref, () => inputRef.current!, []);
 
     const togglePasswordVisibility = useCallback(() => {
       setIsPasswordVisible(prev => !prev);
+    }, []);
+
+    const handleContainerPress = useCallback(() => {
+      inputRef.current?.focus();
     }, []);
 
     const handleFocus = useCallback(
@@ -79,7 +87,7 @@ const Input = forwardRef<TextInput, InputProps>(
           </Text>
         )}
 
-        <View style={getInputContainerStyle()}>
+        <Pressable style={getInputContainerStyle()} onPress={handleContainerPress}>
           {icon && (
             <Ionicons
               name={icon}
@@ -90,33 +98,37 @@ const Input = forwardRef<TextInput, InputProps>(
           )}
 
           <TextInput
-            ref={ref}
+            ref={inputRef}
             style={[styles.input, style]}
             secureTextEntry={isPassword && !isPasswordVisible}
             placeholderTextColor={COLORS.textSecondary}
             onFocus={handleFocus}
             onBlur={handleBlur}
             accessibilityLabel={label}
+            autoCorrect={false}
+            autoCapitalize="none"
+            spellCheck={false}
             {...props}
           />
 
           {isPassword && (
-            <TouchableOpacity
+            <Pressable
               onPress={togglePasswordVisibility}
               style={styles.eyeIcon}
               accessibilityLabel={
                 isPasswordVisible ? 'Hide password' : 'Show password'
               }
               accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name={isPasswordVisible ? 'eye' : 'eye-off'}
                 size={20}
                 color={COLORS.textSecondary}
               />
-            </TouchableOpacity>
+            </Pressable>
           )}
-        </View>
+        </Pressable>
 
         {error && (
           <Text style={styles.errorText} accessibilityLiveRegion="polite">
@@ -164,12 +176,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   inputError: {
     borderColor: COLORS.error,
+    shadowColor: COLORS.error,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   icon: {
     marginRight: 12,
@@ -179,10 +196,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text,
     padding: 0,
+    paddingVertical: 2,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   eyeIcon: {
-    padding: 8,
-    marginRight: -4,
+    padding: 10,
+    marginRight: -6,
+    borderRadius: 20,
   },
   errorText: {
     fontSize: 12,

@@ -38,6 +38,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === 'auth';
+    const isOnIndexPage = !segments.length;
+
+    if (isOnIndexPage) return;
 
     if (!user && !inAuthGroup) {
       router.replace('/auth/sign-in');
@@ -101,15 +104,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const deviceId = await getDeviceId();
       const deviceInfo = await getDeviceInfo();
 
-      await api.post('/auth/register', {
+      console.log('=== Registration Request ===');
+      console.log('Sending registration data:', {
+        name,
+        email,
+        password: '[HIDDEN]',
+        deviceId,
+        deviceInfo,
+      });
+
+      const response = await api.post('/auth/register', {
         name,
         email,
         password,
         deviceId,
         deviceInfo,
       });
+
+      console.log('Registration response:', response.data);
     } catch (error) {
-      throw new Error(handleApiError(error));
+      console.error('=== Registration Error ===');
+      console.error('Full error object:', error);
+
+      const errorMessage = handleApiError(error);
+      console.error('Processed error message:', errorMessage);
+
+      throw new Error(errorMessage);
     }
   };
 
