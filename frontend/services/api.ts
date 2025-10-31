@@ -2,6 +2,8 @@ import { API_URL } from '@/lib/constants';
 import type { ApiError } from '@/types';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { clearTokens, getAccessToken } from './storage.service';
+import authService from './auth.service';
+import { isTokenExpired, isValidTokenFormat } from '@/lib/utils/token';
 
 const REQUEST_TIMEOUT = 30000;
 const UNAUTHORIZED_STATUS = 401;
@@ -41,10 +43,20 @@ const api = axios.create({
 async function attachAuthToken(
   config: InternalAxiosRequestConfig
 ): Promise<InternalAxiosRequestConfig> {
-  const token = await getAccessToken();
+  let token = await getAccessToken();
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (token && isValidTokenFormat(token)) {
+    if (isTokenExpired(token)) {
+      try {
+        token = await authService.refreshTokens();
+      } catch (error) {
+        console.warn('Token refresh failed during request:', error);
+      }
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
 
   return config;
@@ -52,15 +64,34 @@ async function attachAuthToken(
 
 async function handleUnauthorizedError(
   error: AxiosError<ApiError>
-): Promise<never> {
+): Promise<any> {
   const originalRequest = error.config as RetryableRequest;
 
   if (
     error.response?.status === UNAUTHORIZED_STATUS &&
-    !originalRequest._retry
+    !originalRequest._retry &&
+    originalRequest
   ) {
     originalRequest._retry = true;
-    await clearTokens();
+
+    if (originalRequest.url?.includes('/auth/refresh') || 
+        originalRequest.url?.includes('/auth/login')) {
+      await authService.clearSession();
+      return Promise.reject(error);
+    }
+
+    try {
+      if (await authService.shouldRefreshTokens()) {
+        const newToken = await authService.refreshTokens();
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } else {
+        await authService.clearSession();
+      }
+    } catch (refreshError) {
+      console.warn('Token refresh failed in error handler:', refreshError);
+      await authService.clearSession();
+    }
   }
 
   return Promise.reject(error);

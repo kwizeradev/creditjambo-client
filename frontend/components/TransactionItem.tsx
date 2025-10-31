@@ -15,7 +15,7 @@ interface TransactionItemProps {
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onPress }) => {
   const { theme } = useTheme();
   const isDeposit = transaction.type === 'DEPOSIT';
-  const iconName = isDeposit ? 'arrow-down' : 'arrow-up';
+  const iconName = isDeposit ? 'arrow-up' : 'arrow-down';
   const iconColor = isDeposit ? theme.colors.success : theme.colors.error;
   const iconBgColor = isDeposit ? `${theme.colors.success}15` : `${theme.colors.error}15`;
   const amountColor = isDeposit ? theme.colors.success : theme.colors.error;

@@ -120,6 +120,83 @@ export class AdminController {
       data: result,
     });
   }
+
+  async login(req: Request, res: Response): Promise<void> {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Email and password are required',
+      });
+      return;
+    }
+
+    const result = await adminService.adminLogin(email, password);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Admin login successful',
+      data: result,
+    });
+  }
+
+  async logout(req: Request, res: Response): Promise<void> {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    await adminService.adminLogout(userId);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Logout successful',
+    });
+  }
+
+  async refreshToken(req: Request, res: Response): Promise<void> {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Refresh token is required',
+      });
+      return;
+    }
+
+    const result = await adminService.adminRefreshToken(refreshToken);
+
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  }
+
+  async getProfile(req: Request, res: Response): Promise<void> {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        status: 'error',
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const user = await adminService.getAdminProfile(userId);
+
+    res.status(200).json({
+      status: 'success',
+      data: user,
+    });
+  }
 }
 
 export default new AdminController();

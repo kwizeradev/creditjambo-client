@@ -1,5 +1,7 @@
 import prisma from '@/config/database';
 import { AppError } from '@/middlewares/error.middleware';
+import { verifyPassword, hashToken } from '@/utils/auth.util';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@/utils/jwt.util';
 
 export class AdminService {
   async getAllDevices(filter?: 'verified' | 'unverified' | 'all') {
@@ -422,6 +424,164 @@ export class AdminService {
         user: tx.account.user,
       })),
     };
+  }
+
+  async adminLogin(email: string, password: string) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || !verifyPassword(password, user.salt, user.passwordHash)) {
+      throw new AppError(401, 'Invalid email or password');
+    }
+
+    if (user.role !== 'ADMIN') {
+      throw new AppError(403, 'Access denied. Admin privileges required.');
+    }
+
+    // Use unique deviceId per admin: admin-web-{userId}
+    const adminDeviceId = `admin-web-${user.id}`;
+    
+    let adminDevice = await prisma.device.findFirst({
+      where: {
+        userId: user.id,
+        deviceId: adminDeviceId,
+      },
+    });
+
+    if (!adminDevice) {
+      adminDevice = await prisma.device.create({
+        data: {
+          userId: user.id,
+          deviceId: adminDeviceId,
+          deviceInfo: 'Admin Web Console',
+          verified: true,
+        },
+      });
+    }
+
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      deviceId: adminDevice.id,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      deviceId: adminDevice.id,
+    });
+
+    const refreshTokenHash = hashToken(refreshToken);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        deviceId: adminDevice.id,
+        refreshTokenHash,
+        expiresAt,
+        lastActivityAt: new Date(),
+      },
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  async adminLogout(userId: string) {
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
+  }
+
+  async adminRefreshToken(refreshToken: string) {
+    const payload = verifyRefreshToken(refreshToken);
+    const refreshTokenHash = hashToken(refreshToken);
+
+    const session = await prisma.session.findFirst({
+      where: {
+        userId: payload.userId,
+        deviceId: payload.deviceId,
+        refreshTokenHash,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!session) {
+      throw new AppError(401, 'Invalid or expired refresh token');
+    }
+
+    if (session.user.role !== 'ADMIN') {
+      throw new AppError(403, 'Access denied. Admin privileges required.');
+    }
+
+    const newAccessToken = generateAccessToken({
+      userId: session.user.id,
+      email: session.user.email,
+      role: session.user.role,
+      deviceId: session.deviceId,
+    });
+
+    const newRefreshToken = generateRefreshToken({
+      userId: session.user.id,
+      deviceId: session.deviceId,
+    });
+
+    const newRefreshTokenHash = hashToken(newRefreshToken);
+
+    await prisma.session.update({
+      where: { id: session.id },
+      data: {
+        refreshTokenHash: newRefreshTokenHash,
+        lastActivityAt: new Date(),
+      },
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  async getAdminProfile(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'User not found');
+    }
+
+    if (user.role !== 'ADMIN') {
+      throw new AppError(403, 'Access denied. Admin privileges required.');
+    }
+
+    return user;
   }
 }
 

@@ -12,5 +12,6 @@
       "@/contexts/*": ["./contexts/*"],
       "@/app/*": ["./app/*"]
     }
-  }
+  },
+  "exclude": ["node_modules"]
 }

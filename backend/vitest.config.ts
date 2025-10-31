@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./tests/setup.ts'],
+    testTimeout: 30000,
+    hookTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -23,5 +26,7 @@ export default defineConfig({
         'src/config/',
       ],
     },
+    pool: 'threads',
+    maxConcurrency: 1,
   },
 });

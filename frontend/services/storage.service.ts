@@ -33,6 +33,10 @@ export async function getRefreshToken(): Promise<string | null> {
   return await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
 }
 
+export async function saveAccessToken(accessToken: string): Promise<void> {
+  await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+}
+
 export async function clearTokens(): Promise<void> {
   await Promise.all([
     SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),

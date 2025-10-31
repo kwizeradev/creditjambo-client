@@ -8,17 +8,20 @@ import React, {
 
 import api from '@/services/api';
 import { handleApiError } from '@/services/api';
+import authService from '@/services/auth.service';
 import { getDeviceId, getDeviceInfo } from '@/services/device.service';
 import {
   clearDevicePendingState,
   clearTokens,
   getAccessToken,
+  getRefreshToken,
   getDevicePendingState,
   getUser,
   saveDevicePendingState,
   saveTokens,
   saveUser,
 } from '@/services/storage.service';
+import { isValidTokenFormat } from '@/lib/utils/token';
 import type { LoginResponse, User } from '@/types';
 import { useRouter } from 'expo-router';
 
@@ -30,6 +33,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  refreshTokens: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,14 +56,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const [token, savedUser] = await Promise.all([
+      const [accessToken, refreshToken, savedUser] = await Promise.all([
         getAccessToken(),
+        getRefreshToken(),
         getUser(),
       ]);
 
-      if (token && savedUser) {
+      if (
+        accessToken && 
+        refreshToken && 
+        savedUser &&
+        isValidTokenFormat(accessToken) &&
+        isValidTokenFormat(refreshToken)
+      ) {
         setUser(savedUser);
+      } else if (accessToken || refreshToken) {
+        await authService.clearSession();
+        setUser(null);
       }
+    } catch (error) {
+      console.warn('Error loading user:', error);
+      await authService.clearSession();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -130,8 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
+    } catch (error) {
+      console.warn('Logout request failed:', error);
     } finally {
-      await clearTokens();
+      await authService.clearSession();
       setUser(null);
       router.replace('/auth/sign-in');
     }
@@ -141,6 +161,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await loadUser();
   }, [loadUser]);
 
+  const refreshTokens = useCallback(async () => {
+    try {
+      await authService.refreshTokens();
+      await loadUser();
+    } catch (error) {
+      console.warn('Token refresh failed in context:', error);
+      await authService.clearSession();
+      setUser(null);
+      router.replace('/auth/sign-in');
+    }
+  }, [loadUser, router]);
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -149,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     refreshAuth,
+    refreshTokens,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
