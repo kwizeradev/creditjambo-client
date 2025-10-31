@@ -15,6 +15,7 @@ import Input from '@/components/Input';
 import PasswordStrength from '@/components/PasswordStrength';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useTheme } from '@/lib/hooks/useTheme';
 import { COLORS } from '@/lib/constants';
 import { useForm } from '@/lib/hooks/useForm';
 import { usePasswordStrength } from '@/lib/hooks/usePasswordStrength';
@@ -34,6 +35,7 @@ const SUCCESS_NOTIFICATION_DURATION = 6000;
 const ERROR_NOTIFICATION_DURATION = 6000;
 
 export default function SignUp() {
+  const { theme } = useTheme();
   const { register } = useAuth();
   const { showNotification } = useNotification();
   const router = useRouter();
@@ -110,7 +112,7 @@ export default function SignUp() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -120,17 +122,17 @@ export default function SignUp() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
             <View style={styles.headerContent}>
               <Text style={styles.appTitle}>Credit Jambo</Text>
               <Text style={styles.appSubtitle}>Savings Management</Text>
             </View>
           </View>
 
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Create Account</Text>
+              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Join Credit Jambo to start managing your savings
               </Text>
             </View>
@@ -188,10 +190,10 @@ export default function SignUp() {
               />
 
               <View style={styles.signInLink}>
-                <Text style={styles.signInText}>Already have an account? </Text>
+                <Text style={[styles.signInText, { color: theme.colors.textSecondary }]}>Already have an account? </Text>
                 <Link href="/auth/sign-in" asChild>
                   <TouchableOpacity accessibilityRole="button">
-                    <Text style={styles.signInLinkText}>Sign In</Text>
+                    <Text style={[styles.signInLinkText, { color: theme.colors.primary }]}>Sign In</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -206,7 +208,6 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
@@ -215,7 +216,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    backgroundColor: COLORS.primary,
     paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 24,
@@ -236,7 +236,6 @@ const styles = StyleSheet.create({
   },
   formCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     marginTop: -20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -256,12 +255,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -279,11 +276,9 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: 16,
-    color: COLORS.textSecondary,
   },
   signInLinkText: {
     fontSize: 16,
-    color: COLORS.primary,
     fontWeight: '600',
   },
 });

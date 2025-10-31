@@ -4,7 +4,9 @@ import helmet from 'helmet';
 import express from 'express';
 import { errorHandler, notFoundHandler, requestLogger } from '@/middlewares';
 import { sanitizeInput, preventNoSQLInjection } from '@/middlewares';
-import { generalLimiter, corsOptions, helmetConfig } from './security';
+import { generalLimiter, helmetConfig } from './security';
+import { corsOptions } from './cors.config';
+import { setupSwagger } from './swagger';
 
 export function configureMiddleware(app: Application): void {
   configureSecurity(app);
@@ -13,6 +15,7 @@ export function configureMiddleware(app: Application): void {
   configureSanitization(app);
   configureProxy(app);
   configureRateLimiting(app);
+  setupSwagger(app);
 }
 
 export function configureErrorHandling(app: Application): void {

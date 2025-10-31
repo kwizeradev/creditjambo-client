@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: cjclient-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kw1zera}
+      POSTGRES_DB: ${POSTGRES_DB:-cjsavings}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - cjclient-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cjclient-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-kw1zera}@postgres:5432/${POSTGRES_DB:-cjsavings}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-7d}
+      INACTIVITY_TIMEOUT: ${INACTIVITY_TIMEOUT:-30m}
+      ROTATE_REFRESH_TOKENS: ${ROTATE_REFRESH_TOKENS:-false}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-200}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
+      TRANSACTION_RATE_LIMIT_WINDOW_MS: ${TRANSACTION_RATE_LIMIT_WINDOW_MS:-600000}
+      TRANSACTION_RATE_LIMIT_MAX: ${TRANSACTION_RATE_LIMIT_MAX:-20}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+      LOW_BALANCE_THRESHOLD: ${LOW_BALANCE_THRESHOLD:-100}
+      PASSWORD_SALT_BYTES: ${PASSWORD_SALT_BYTES:-16}
+      PASSWORD_HASH_ITERATIONS: ${PASSWORD_HASH_ITERATIONS:-100000}
+      PASSWORD_HASH_LENGTH: ${PASSWORD_HASH_LENGTH:-64}
+      MAX_INPUT_STRING_LENGTH: ${MAX_INPUT_STRING_LENGTH:-10000}
+      MAX_INPUT_OBJECT_DEPTH: ${MAX_INPUT_OBJECT_DEPTH:-10}
+      SESSION_CLEANUP_INTERVAL_HOURS: ${SESSION_CLEANUP_INTERVAL_HOURS:-24}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cjclient-network
+    command: sh -c "npx prisma migrate deploy --schema=src/prisma/schema.prisma && node src/prisma/seed.js && node dist/server.js"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cjclient-network:
+    driver: bridge

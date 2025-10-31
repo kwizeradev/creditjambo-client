@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Prisma } from '@/generated/prisma';
+import { Prisma } from '../generated/prisma';
 
 export class AppError extends Error {
   constructor(

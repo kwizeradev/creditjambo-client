@@ -1,18 +1,18 @@
 const ENV = {
   dev: {
-    apiUrl: 'http://192.168.1.4:4000/api',
+    apiUrl: 'http://192.168.1.2:4000/api',
   },
   prod: {
-    apiUrl: 'https://your-production-api.com/api',
+    apiUrl: 'https://api.creditjambo.com/api',
   },
 };
 
-const getEnvVars = () => {
+function getEnvVars() {
   if (__DEV__) {
     return ENV.dev;
   }
   return ENV.prod;
-};
+}
 
 export const config = getEnvVars();
 

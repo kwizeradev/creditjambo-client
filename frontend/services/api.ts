@@ -29,6 +29,7 @@ const HTTP_STATUS = {
   BAD_REQUEST: 400,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
   SERVER_ERROR: 500,
 } as const;
 
@@ -124,6 +125,16 @@ function extractApiErrorMessage(apiError: ApiError): string | null {
   return null;
 }
 
+function formatRetryAfterMessage(retryAfter: string | number): string {
+  const seconds = typeof retryAfter === 'string' ? parseInt(retryAfter) : retryAfter;
+  const minutes = Math.ceil(seconds / 60);
+  
+  if (minutes > 1) {
+    return `Too many requests. Please try again in ${minutes} minutes.`;
+  }
+  return `Too many requests. Please try again in ${seconds} seconds.`;
+}
+
 function getStatusErrorMessage(status: number): string | null {
   switch (status) {
     case HTTP_STATUS.BAD_REQUEST:
@@ -150,6 +161,14 @@ export function handleApiError(error: unknown): string {
 
   if (isTimeoutError(error)) {
     return ERROR_MESSAGES.TIMEOUT;
+  }
+
+  if (error.response?.status === HTTP_STATUS.TOO_MANY_REQUESTS) {
+    const retryAfter = error.response.headers['retry-after'];
+    if (retryAfter) {
+      return formatRetryAfterMessage(retryAfter);
+    }
+    return 'Too many requests. Please wait a moment and try again.';
   }
 
   const apiError = error.response?.data as ApiError;

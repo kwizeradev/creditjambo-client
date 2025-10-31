@@ -1,0 +1,29 @@
+{
+  "name": "creditjambo-client",
+  "version": "1.0.0",
+  "description": "A secure savings management system for customers with mobile app and backend API.",
+  "main": "index.js",
+  "scripts": {
+    "setup": "ts-node --esm scripts/setup.env.ts",
+    "teardown": "docker compose down",
+    "docker:restart": "docker compose restart",
+    "logs": "docker compose logs -f"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kwizeradev/creditjambo-client.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/kwizeradev/creditjambo-client/issues"
+  },
+  "homepage": "https://github.com/kwizeradev/creditjambo-client#readme",
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

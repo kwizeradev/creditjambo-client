@@ -2,7 +2,7 @@ import React from 'react';
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { COLORS } from '@/lib/constants';
+import { useTheme } from '@/lib/hooks/useTheme';
 import type {
   PasswordRequirement,
   PasswordStrength as PasswordStrengthType,
@@ -23,16 +23,17 @@ function getRequirementIconName(
   return isMet ? 'checkmark-circle' : 'close-circle';
 }
 
-function getRequirementColor(isMet: boolean): string {
-  return isMet ? COLORS.success : COLORS.textSecondary;
+function getRequirementColor(isMet: boolean, theme: any): string {
+  return isMet ? theme.colors.success : theme.colors.textSecondary;
 }
 
 function getSegmentColor(
   segment: number,
   score: number,
-  strengthColor: string
+  strengthColor: string,
+  theme: any
 ): string {
-  return segment <= score ? strengthColor : COLORS.border;
+  return segment <= score ? strengthColor : theme.colors.border;
 }
 
 interface StrengthBarProps {
@@ -41,6 +42,8 @@ interface StrengthBarProps {
 }
 
 function StrengthBar({ score, color }: StrengthBarProps): React.ReactElement {
+  const { theme } = useTheme();
+  
   return (
     <View style={styles.strengthBar}>
       {STRENGTH_SEGMENTS.map(segment => (
@@ -48,7 +51,7 @@ function StrengthBar({ score, color }: StrengthBarProps): React.ReactElement {
           key={segment}
           style={[
             styles.strengthSegment,
-            { backgroundColor: getSegmentColor(segment, score, color) },
+            { backgroundColor: getSegmentColor(segment, score, color, theme) },
           ]}
         />
       ))}
@@ -63,8 +66,9 @@ interface RequirementItemProps {
 function RequirementItem({
   requirement,
 }: RequirementItemProps): React.ReactElement {
+  const { theme } = useTheme();
   const iconName = getRequirementIconName(requirement.met);
-  const color = getRequirementColor(requirement.met);
+  const color = getRequirementColor(requirement.met, theme);
 
   return (
     <View style={styles.requirement}>
@@ -101,6 +105,8 @@ function PasswordStrength({
   strength,
   showRequirements = false,
 }: PasswordStrengthProps): React.ReactElement | null {
+  const { theme } = useTheme();
+  
   if (!strength.label) {
     return null;
   }
@@ -108,7 +114,7 @@ function PasswordStrength({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.label}>Password Strength</Text>
+        <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Password Strength</Text>
         <Text style={[styles.value, { color: strength.color }]}>
           {strength.label}
         </Text>
@@ -135,7 +141,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: COLORS.textSecondary,
   },
   value: {
     fontSize: 14,

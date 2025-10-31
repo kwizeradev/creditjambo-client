@@ -18,18 +18,10 @@ configureErrorHandling(app);
 
 const server = app.listen(PORT, () => {
   logServerStart(PORT);
-  startSessionCleanup();
 });
 
 setupGracefulShutdown(server);
 
-function startSessionCleanup(): void {
-  const intervalHours = parseInt(process.env.SESSION_CLEANUP_INTERVAL_HOURS || '24');
-  const cleanupInterval = intervalHours * 60 * 60 * 1000;
-
-  cleanupExpiredSessions();
-  setInterval(cleanupExpiredSessions, cleanupInterval);
-}
 
 function setupGracefulShutdown(server: Server): void {
   const shutdown = (signal: string) => {

@@ -3,11 +3,10 @@ import { hashPassword, hashToken, verifyPassword } from '@/utils/auth.util';
 import { LoginUserInput, RegisterUserInput, RefreshTokenInput, TokenResponse } from '@/dtos';
 import { toUserResponse, UserResponse } from '@/dtos/user.dto';
 import { Decimal } from '@prisma/client/runtime/library';
-import type { Role } from '@/generated/prisma';
+import type { PrismaClient, Role } from '../generated/prisma';
 import { AppError } from '@/middlewares/error.middleware';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@/utils/jwt.util';
 import { findOrCreateDevice, validateDeviceOwnership } from '@/utils/device.util';
-import type { PrismaClient } from '@/generated/prisma';
 
 type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
 
